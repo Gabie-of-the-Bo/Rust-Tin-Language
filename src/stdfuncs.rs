@@ -3,6 +3,31 @@ use crate::interpreter::{*};
 
 use regex::Regex;
 
+fn tin_dup(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    stack.push(stack.last().cloned().unwrap());
+
+    return TinValue::NONE;
+}
+
+fn tin_swap(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let last_index = stack.len() - 1;
+    stack.swap(last_index, last_index - 1);
+    
+    return TinValue::NONE;
+}
+
+fn tin_copy(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    if let TinValue::INT(n) = stack.pop().unwrap() {
+        let item = stack.get(stack.len() - 1 - n as usize).cloned().unwrap();
+        stack.push(item);
+    
+    } else {
+        panic!();
+    }
+    
+    return TinValue::NONE;
+}
+
 fn tin_define_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     let ctx = intrp.variables.entry(tok).or_insert(vec!());
     ctx.push(stack.pop().unwrap());
@@ -158,6 +183,10 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"\d*\.\d+", |s| TinToken::FLOAT(s.parse::<f64>().unwrap())),
 
         // Meta
+        (r"!", |s| TinToken::FN(s.to_string(), tin_dup)),
+        (r"↶", |s| TinToken::FN(s.to_string(), tin_swap)),
+        (r"↷", |s| TinToken::FN(s.to_string(), tin_copy)),
+
         (r"→[a-z_]+", |s| TinToken::FN(s[3..].to_string(), tin_define_var)),
         (r"←[a-z_]+", |s| TinToken::FN(s[3..].to_string(), tin_delete_var)),
         (r"\.[a-z_]+", |s| TinToken::FN(s[1..].to_string(), tin_get_var)),
