@@ -170,7 +170,7 @@ fn drop_first(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, 
 }
 
 fn tin_print(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
-    println!("{:?}", stack.pop().unwrap());
+    println!("{}", stack.pop().unwrap().to_string());
 
     return TinValue::NONE
 }

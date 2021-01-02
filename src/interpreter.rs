@@ -23,6 +23,15 @@ impl TinValue{
             _ => false
         };
     }
+
+    pub fn to_string(&self) -> String{
+        return match self{
+            TinValue::INT(n) => n.to_string(),
+            TinValue::FLOAT(n) => format!("{:.5}", n),
+            TinValue::VECTOR(v) => format!("[{}]", v.iter().map(TinValue::to_string).collect::<Vec<_>>().join(", ")),
+            TinValue::NONE => "NONE".to_string()
+        }
+    }
 }
 
 #[derive(Clone)]
