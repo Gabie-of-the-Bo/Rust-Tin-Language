@@ -138,7 +138,7 @@ fn iota(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &
 
 fn drop_first(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     return match stack.pop().unwrap() {
-        TinValue::VECTOR(v) => TinValue::VECTOR(v[1..].to_vec()),
+        TinValue::VECTOR(v) => TinValue::VECTOR(v[std::cmp::min(v.len(), 1)..].to_vec()),
 
         _ => unreachable!()
     };
@@ -162,7 +162,7 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"←[a-z_]+", |s| TinToken::FN(s[3..].to_string(), tin_delete_var)),
         (r"\.[a-z_]+", |s| TinToken::FN(s[1..].to_string(), tin_get_var)),
 
-        //(r"\|[^|]+\|→\|[^|]+\|", |s| TinToken::FN(s.to_string())),
+        (r"\|[^|]+\|→\|[^|]+\|", |s| TinToken::DEF(s.to_string())),
 
         (r"\{", |s| TinToken::FN(s.to_string(), tin_foreach_init)),
         (r"\}", |s| TinToken::FN(s.to_string(), tin_foreach_end)),
