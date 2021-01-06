@@ -3,20 +3,20 @@ use crate::interpreter::{*};
 
 use regex::Regex;
 
-fn tin_dup(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_dup(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     stack.push(stack.last().cloned().unwrap());
 
     return TinValue::NONE;
 }
 
-fn tin_swap(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_swap(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     let last_index = stack.len() - 1;
     stack.swap(last_index, last_index - 1);
     
     return TinValue::NONE;
 }
 
-fn tin_copy(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_copy(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     if let TinValue::INT(n) = stack.pop().unwrap() {
         let item = stack.get(stack.len() - 1 - n as usize).cloned().unwrap();
         stack.push(item);
@@ -28,14 +28,14 @@ fn tin_copy(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _i
     return TinValue::NONE;
 }
 
-fn tin_define_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_define_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     let ctx = intrp.variables.entry(tok).or_insert(vec!());
     ctx.push(stack.pop().unwrap());
 
     return TinValue::NONE;
 }
 
-fn tin_delete_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, _stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_delete_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, _stack: &mut Vec<TinValue>) -> TinValue{
     let ctx = intrp.variables.get_mut(&tok).unwrap();
     ctx.pop();
 
@@ -46,13 +46,43 @@ fn tin_delete_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>
     return TinValue::NONE;
 }
 
-fn tin_get_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, _stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_get_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, _stack: &mut Vec<TinValue>) -> TinValue{
     let ctx = &intrp.variables[&tok];
 
     return ctx.last().cloned().unwrap();
 }
 
-fn tin_foreach_init(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_skip(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let last_t = stack.pop().unwrap().truthy();
+
+    if !last_t{
+        *ip += 1;
+    }
+
+    return TinValue::NONE;
+}
+
+fn tin_skip_dup(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let last_t = stack.last().as_ref().unwrap().truthy();
+
+    if !last_t{
+        *ip += 1;
+    }
+
+    return TinValue::NONE;
+}
+
+fn tin_skip_inv(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let last_t = stack.pop().unwrap().truthy();
+
+    if last_t{
+        *ip += 1;
+    }
+
+    return TinValue::NONE;
+}
+
+fn tin_foreach_init(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     if !intrp.loop_stack.is_empty() && intrp.loop_stack.last().unwrap().0 == *ip{
         intrp.loop_stack.last_mut().unwrap().2 += 1;
 
@@ -69,7 +99,7 @@ fn tin_foreach_init(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinTok
     return TinValue::NONE;
 }
 
-fn tin_foreach_end(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, ip: &mut usize, _stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_foreach_end(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, ip: &mut usize, _stack: &mut Vec<TinValue>) -> TinValue{
     let (pos, arr, idx) = intrp.loop_stack.last().unwrap();
 
     if *idx < arr.len() - 1 {
@@ -82,12 +112,12 @@ fn tin_foreach_end(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToke
     return TinValue::NONE;
 }
 
-fn tin_storer_init(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_storer_init(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     intrp.storer_stack.push(stack.len());
     return TinValue::NONE;
 }
 
-fn tin_storer_end(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_storer_end(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     let idx = intrp.storer_stack.pop().unwrap();
 
     let arr = TinValue::VECTOR(stack.drain(idx..).collect::<Vec<_>>());
@@ -96,55 +126,89 @@ fn tin_storer_end(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken
     return TinValue::NONE;
 }
 
-fn nabla(_tok: String, intrp: &mut TinInterpreter, prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
-    intrp.execute(prog, stack);
+fn nabla(_tok: String, intrp: &mut TinInterpreter, prog: &Vec<TinToken>, prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    if prog_parent.is_some(){
+        intrp.execute(prog_parent.unwrap(), Option::None, stack);
+
+    } else{
+        intrp.execute(prog, prog_parent, stack);
+    }
 
     return TinValue::NONE;
 }
 
-fn tin_gt(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn block(tok: String, intrp: &mut TinInterpreter, prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let new_tok = &tok[3..tok.len() - 3];
+    let program = intrp.parse(new_tok);
+    intrp.execute(&program, Option::Some(prog), stack);
+
+    return TinValue::NONE;
+}
+
+fn tin_lt(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let a = stack.pop().unwrap();
+    let b = stack.pop().unwrap();
+
+    return wrappers::lt(&a, &b);
+}
+
+fn tin_gt(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     let a = stack.pop().unwrap();
     let b = stack.pop().unwrap();
 
     return wrappers::gt(&a, &b);
 }
 
-fn tin_sum(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_sum(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     let a = stack.pop().unwrap();
     let b = stack.pop().unwrap();
 
     return wrappers::sum(&a, &b);
 }
 
-fn tin_sub(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_sub(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     let a = stack.pop().unwrap();
     let b = stack.pop().unwrap();
 
     return wrappers::sub(&a, &b);
 }
 
-fn tin_mul(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_mul(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     let a = stack.pop().unwrap();
     let b = stack.pop().unwrap();
 
     return wrappers::mul(&a, &b);
 }
 
-fn tin_div(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_div(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     let a = stack.pop().unwrap();
     let b = stack.pop().unwrap();
 
     return wrappers::div(&a, &b);
 }
 
-fn tin_mod(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_mod(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     let a = stack.pop().unwrap();
     let b = stack.pop().unwrap();
 
     return wrappers::modl(&a, &b);
 }
 
-fn tin_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_inc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let a = stack.pop().unwrap();
+    let b = TinValue::INT(1);
+
+    return wrappers::sum(&a, &b);
+}
+
+fn tin_dec(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let a = stack.pop().unwrap();
+    let b = TinValue::INT(1);
+
+    return wrappers::sub(&a, &b);
+}
+
+fn tin_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     return match stack.pop().unwrap(){
         TinValue::VECTOR(v) => TinValue::INT(v.iter().all(TinValue::truthy) as i64),
 
@@ -152,7 +216,7 @@ fn tin_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip
     };
 }
 
-fn iota(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn iota(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     return match stack.pop().unwrap() {
         TinValue::INT(a) => TinValue::VECTOR((0..a).map(TinValue::INT).collect::<Vec<_>>()),
         TinValue::FLOAT(a) => TinValue::VECTOR((0..a as i64).map(TinValue::INT).collect::<Vec<_>>()),
@@ -161,7 +225,7 @@ fn iota(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &
     };
 }
 
-fn drop_first(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn drop_first(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     return match stack.pop().unwrap() {
         TinValue::VECTOR(v) => TinValue::VECTOR(v[std::cmp::min(v.len(), 1)..].to_vec()),
 
@@ -169,7 +233,7 @@ fn drop_first(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, 
     };
 }
 
-fn tin_print(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+fn tin_print(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     println!("{}", stack.pop().unwrap().to_string());
 
     return TinValue::NONE
@@ -192,7 +256,11 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"\.[a-z_]+", |s| TinToken::FN(s[1..].to_string(), tin_get_var)),
 
         (r"\|[^|]+\|→\|[^|]+\|", |s| TinToken::DEF(s.to_string())),
+        (r"⟨[^⟨⟩]+⟩", |s| TinToken::FN(s.to_string(), block)),
 
+        (r"\?", |s| TinToken::FN(s.to_string(), tin_skip)),
+        (r"◊", |s| TinToken::FN(s.to_string(), tin_skip_dup)),
+        (r":", |s| TinToken::FN(s.to_string(), tin_skip_inv)),
         (r"\{", |s| TinToken::FN(s.to_string(), tin_foreach_init)),
         (r"\}", |s| TinToken::FN(s.to_string(), tin_foreach_end)),
         (r"\(", |s| TinToken::FN(s.to_string(), tin_storer_init)),
@@ -203,11 +271,15 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         // Basic arithmetic
         (r"\+", |s| TinToken::FN(s.to_string(), tin_sum)),
         (r"\-", |s| TinToken::FN(s.to_string(), tin_sub)),
-        (r"\*", |s| TinToken::FN(s.to_string(), tin_mul)),
+        (r"·", |s| TinToken::FN(s.to_string(), tin_mul)),
         (r"/", |s| TinToken::FN(s.to_string(), tin_div)),
         (r"%", |s| TinToken::FN(s.to_string(), tin_mod)),
 
+        (r"⊳", |s| TinToken::FN(s.to_string(), tin_inc)),
+        (r"⊲", |s| TinToken::FN(s.to_string(), tin_dec)),
+
         // Logic
+        (r"<", |s| TinToken::FN(s.to_string(), tin_lt)),
         (r">", |s| TinToken::FN(s.to_string(), tin_gt)),
 
         (r"∀", |s| TinToken::FN(s.to_string(), tin_all)),

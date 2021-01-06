@@ -39,7 +39,7 @@ pub enum TinToken {
     INT(i64),
     FLOAT(f64),
 
-    FN(String, fn(String, &mut TinInterpreter, &Vec<TinToken>, &mut usize, &mut Vec<TinValue>) -> TinValue),
+    FN(String, fn(String, &mut TinInterpreter, &Vec<TinToken>, Option<&Vec<TinToken>>, &mut usize, &mut Vec<TinValue>) -> TinValue),
     DEF(String)
 }
 
@@ -49,6 +49,7 @@ pub struct TinInterpreter {
     pub variables: HashMap<String, Vec<TinValue>>,
     pub loop_stack: Vec<(usize, Vec<TinValue>, usize)>,
     pub storer_stack: Vec<usize>,
+    pub parse_cache: HashMap<String, Vec<TinToken>>,
     pub functions_cache: HashMap<String, Vec<TinToken>>
 }
 
@@ -59,6 +60,7 @@ impl TinInterpreter {
             variables: HashMap::new(),
             loop_stack: vec!(),
             storer_stack: vec!(),
+            parse_cache: HashMap::new(),
             functions_cache: HashMap::new()
         }
     }
@@ -67,6 +69,10 @@ impl TinInterpreter {
         let mut code = code_original;
         let mut res = vec!();
         
+        if self.parse_cache.contains_key(code){
+            return self.parse_cache.get(code).cloned().unwrap();
+        }
+
         while code.len() > 0 {
             let mut opt: Option<(TinToken, usize)> = None;
 
@@ -94,21 +100,25 @@ impl TinInterpreter {
             } else {
                 let opt_i = opt.unwrap();
 
-                if let TinToken::DEF(s) = opt_i.0.clone() {
-                    fn exec_func(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
-                        let prg = intrp.functions_cache.get(tok.as_str()).cloned().unwrap();
-                        intrp.execute(&prg, stack);
-
-                        return TinValue::NONE;
+                match opt_i.0.clone(){
+                    TinToken::DEF(s) => {
+                        fn exec_func(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+                            let prg = intrp.functions_cache.get(tok.as_str()).cloned().unwrap();
+                            intrp.execute(&prg, prog_parent, stack);
+    
+                            return TinValue::NONE;
+                        }
+    
+                        let parts = s.split("|").collect::<Vec<_>>();
+                        let func_code = self.parse(parts[1]);
+                        let func_name = parts[3];
+    
+                        self.functions_cache.entry(func_name.to_string()).or_insert(func_code);
+    
+                        self.token_list.push((Regex::new(func_name).unwrap(), |s| TinToken::FN(s.to_string(), exec_func)));
                     }
 
-                    let parts = s.split("|").collect::<Vec<_>>();
-                    let func_code = self.parse(parts[1]);
-                    let func_name = parts[3];
-
-                    self.functions_cache.entry(func_name.to_string()).or_insert(func_code);
-
-                    self.token_list.push((Regex::new(func_name).unwrap(), |s| TinToken::FN(s.to_string(), exec_func)));
+                    _ => {}
                 }
 
                 res.push(opt_i.0);
@@ -116,10 +126,12 @@ impl TinInterpreter {
             }
         }
 
+        self.parse_cache.entry(code_original.to_string()).or_insert(res.clone());
+
         return res;
     }
 
-    pub fn execute(&mut self, program: &Vec<TinToken>, stack: &mut Vec<TinValue>){
+    pub fn execute(&mut self, program: &Vec<TinToken>, parent: Option<&Vec<TinToken>>, stack: &mut Vec<TinValue>){
         let mut ip = 0;
 
         while ip < program.len(){
@@ -130,7 +142,7 @@ impl TinInterpreter {
                 TinToken::FLOAT(n) => stack.push(TinValue::FLOAT(*n)),
 
                 TinToken::FN(s, f) => {
-                    let res = f(s.to_string(), self, program, &mut ip, stack);
+                    let res = f(s.to_string(), self, program, parent, &mut ip, stack);
                     
                     if res != TinValue::NONE {
                         stack.push(res);
