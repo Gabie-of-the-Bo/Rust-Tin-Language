@@ -119,7 +119,7 @@ fn tin_storer_init(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToke
 
 fn tin_storer_end(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     let idx = intrp.storer_stack.pop().unwrap();
-
+    
     let arr = TinValue::VECTOR(stack.drain(idx..).collect::<Vec<_>>());
     stack.push(arr);
 
@@ -208,6 +208,40 @@ fn tin_dec(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     return wrappers::sub(&a, &b);
 }
 
+fn tin_floor(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let v = stack.pop().unwrap();
+
+    return wrappers::floor(&v);
+}
+
+fn tin_ceil(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let v = stack.pop().unwrap();
+
+    return wrappers::ceil(&v);
+}
+
+fn tin_truthy(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let v = stack.pop().unwrap();
+
+    return wrappers::truthy(&v);
+}
+
+fn tin_any(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    return match stack.pop().unwrap(){
+        TinValue::VECTOR(v) => TinValue::INT(v.iter().any(TinValue::truthy) as i64),
+
+        _ => unreachable!()
+    };
+}
+
+fn tin_none(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    return match stack.pop().unwrap(){
+        TinValue::VECTOR(v) => TinValue::INT(!v.iter().any(TinValue::truthy) as i64),
+
+        _ => unreachable!()
+    };
+}
+
 fn tin_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
     return match stack.pop().unwrap(){
         TinValue::VECTOR(v) => TinValue::INT(v.iter().all(TinValue::truthy) as i64),
@@ -225,12 +259,187 @@ fn iota(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_
     };
 }
 
-fn drop_first(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
-    return match stack.pop().unwrap() {
-        TinValue::VECTOR(v) => TinValue::VECTOR(v[std::cmp::min(v.len(), 1)..].to_vec()),
+fn boxed(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    return TinValue::VECTOR(vec!(stack.pop().unwrap()));
+}
+
+fn set(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let idx = stack.pop().unwrap();
+    let elem = stack.pop().unwrap();
+    let v = stack.last_mut().unwrap();
+
+    match (idx, v) {
+        (TinValue::INT(a), TinValue::VECTOR(v)) => v[a as usize] = elem,
 
         _ => unreachable!()
     };
+
+    return TinValue::NONE;
+}
+
+fn get(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let idx = stack.pop().unwrap();
+    let v = stack.pop().unwrap();
+
+    return match (idx, v) {
+        (TinValue::INT(a), TinValue::VECTOR(v)) => v[a as usize].clone(),
+
+        _ => unreachable!()
+    };
+}
+
+fn tin_sum_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    match stack.pop().unwrap(){
+        TinValue::VECTOR(v) => {
+            let mut res = TinValue::INT(0);
+
+            for i in v{
+                res = wrappers::sum(&res, &i);
+            }
+
+            return res;
+        },
+
+        _ => unreachable!()
+    };
+}
+
+fn tin_mul_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    match stack.pop().unwrap(){
+        TinValue::VECTOR(v) => {
+            let mut res = TinValue::INT(1);
+
+            for i in v{
+                res = wrappers::mul(&res, &i);
+            }
+
+            return res;
+        },
+
+        _ => unreachable!()
+    };
+}
+
+fn tin_len(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    return match stack.pop().unwrap() {
+        TinValue::VECTOR(v) => TinValue::INT(v.len() as i64),
+
+        _ => unreachable!()
+    };
+}
+
+fn tin_max(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    match stack.pop().unwrap() {
+        TinValue::VECTOR(v) => {
+            let mut v_it = v.iter();
+            let mut res = v_it.next().unwrap();
+
+            for i in v_it{
+                if let TinValue::INT(1) = wrappers::gt(&i, &res){
+                    res = i;
+                }
+            }
+
+            stack.push(res.clone());
+        }
+
+        _ => unreachable!()
+    };
+
+    return TinValue::NONE;
+}
+
+fn tin_min(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    match stack.pop().unwrap() {
+        TinValue::VECTOR(v) => {
+            let mut v_it = v.iter();
+            let mut res = v_it.next().unwrap();
+
+            for i in v_it{
+                if let TinValue::INT(1) = wrappers::lt(&i, &res){
+                    res = i;
+                }
+            }
+
+            stack.push(res.clone());
+        }
+
+        _ => unreachable!()
+    };
+
+    return TinValue::NONE;
+}
+
+fn tin_count(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let elem = stack.pop().unwrap();
+    
+    match stack.pop().unwrap() {
+        TinValue::VECTOR(v) => {
+            let mut res = 0;
+
+            for i in v{
+                if i == elem {
+                    res += 1;
+                }
+            }
+
+            stack.push(TinValue::INT(res));
+        }
+
+        _ => unreachable!()
+    };
+
+    return TinValue::NONE;
+}
+
+fn tin_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let elem = stack.pop().unwrap();
+    
+    match stack.pop().unwrap() {
+        TinValue::VECTOR(v) => {
+            let mut res = vec!();
+
+            for (idx, i) in v.iter().enumerate(){
+                if *i == elem {
+                    res.push(TinValue::INT(idx as i64));
+                }
+            }
+
+            stack.push(TinValue::VECTOR(res));
+        }
+
+        _ => unreachable!()
+    };
+
+    return TinValue::NONE;
+}
+
+fn drop_first(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    match stack.last_mut().unwrap() {
+        TinValue::VECTOR(v) => {
+            if v.len() > 0 {
+                v.remove(0);
+            }
+        },
+
+        _ => unreachable!()
+    };
+
+    return TinValue::NONE;
+}
+
+fn drop_last(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    match stack.last_mut().unwrap() {
+        TinValue::VECTOR(v) => {
+            if v.len() > 0 {
+                v.pop();
+            }
+        },
+
+        _ => unreachable!()
+    };
+
+    return TinValue::NONE;
 }
 
 fn tin_print(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
@@ -278,18 +487,39 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"⊳", |s| TinToken::FN(s.to_string(), tin_inc)),
         (r"⊲", |s| TinToken::FN(s.to_string(), tin_dec)),
 
+        (r"⌉", |s| TinToken::FN(s.to_string(), tin_floor)),
+        (r"⌋", |s| TinToken::FN(s.to_string(), tin_ceil)),
+
+        (r"𝔹", |s| TinToken::FN(s.to_string(), tin_truthy)),
+
         // Logic
         (r"<", |s| TinToken::FN(s.to_string(), tin_lt)),
         (r">", |s| TinToken::FN(s.to_string(), tin_gt)),
 
+        (r"∃", |s| TinToken::FN(s.to_string(), tin_any)),
+        (r"∄", |s| TinToken::FN(s.to_string(), tin_none)),
         (r"∀", |s| TinToken::FN(s.to_string(), tin_all)),
 
         // Array operations
         (r"ι", |s| TinToken::FN(s.to_string(), iota)),
+        (r"□", |s| TinToken::FN(s.to_string(), boxed)),
+        (r"↓", |s| TinToken::FN(s.to_string(), get)),
+        (r"↑", |s| TinToken::FN(s.to_string(), set)),
+
+        (r"∑", |s| TinToken::FN(s.to_string(), tin_sum_all)),
+        (r"∏", |s| TinToken::FN(s.to_string(), tin_mul_all)),
+
+        (r"⍴", |s| TinToken::FN(s.to_string(), tin_len)),
+
+        (r"⌈", |s| TinToken::FN(s.to_string(), tin_max)),
+        (r"⌊", |s| TinToken::FN(s.to_string(), tin_min)),
+
+        (r"#", |s| TinToken::FN(s.to_string(), tin_count)),
+        (r"º", |s| TinToken::FN(s.to_string(), tin_index)),
 
         // Functional array manipulation
         (r"`", |s| TinToken::FN(s.to_string(), drop_first)),
-        //(r"´", |s| TinToken::FN(s.to_string(), drop_last)),
+        (r"´", |s| TinToken::FN(s.to_string(), drop_last)),
 
         // IO
         (r"\$", |s| TinToken::FN(s.to_string(), tin_print))

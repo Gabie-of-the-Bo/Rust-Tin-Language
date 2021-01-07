@@ -1,5 +1,33 @@
 use crate::interpreter::{*};
 
+pub fn floor(a: &TinValue) -> TinValue{
+    return match a{
+        TinValue::INT(n) => TinValue::INT(*n),
+        TinValue::FLOAT(n) => TinValue::INT(n.floor() as i64),
+        TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(floor).collect()),
+
+        _ => unreachable!()
+    }
+}
+
+pub fn ceil(a: &TinValue) -> TinValue{
+    return match a{
+        TinValue::INT(n) => TinValue::INT(*n),
+        TinValue::FLOAT(n) => TinValue::INT(n.ceil() as i64),
+        TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(ceil).collect()),
+
+        _ => unreachable!()
+    }
+}
+
+pub fn truthy(a: &TinValue) -> TinValue{
+    return match a{
+        TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(truthy).collect()),
+
+        _ => TinValue::INT(a.truthy() as i64)
+    }
+}
+
 pub fn lt(aa: &TinValue, bb: &TinValue) -> TinValue{
     return match (aa, bb) {
         (TinValue::INT(a), TinValue::INT(b)) => TinValue::INT((a < b) as i64),
