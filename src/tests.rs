@@ -82,7 +82,7 @@ mod tests{
 
         let mut intrp = TinInterpreter::new();
 
-        let code = "!!→n1<?⟨2ι→r ⊲ι{(.r1↓ .r∑)→r}.r1↓→n⟩.n←n";
+        let code = "!!→n1<?⟨2ι→r ⊲ι{(.r1↓ .r∑)→.r}.r1↓→.n⟩.n←r←n";
         let program = intrp.parse(code);
 
         for i in 0..45{

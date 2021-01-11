@@ -8,3 +8,11 @@ edition = "2018"
 
 [dependencies]
 regex = "1"
+rand = "*"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "benchmarks"
+harness = false

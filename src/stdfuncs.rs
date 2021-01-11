@@ -35,12 +35,27 @@ fn tin_define_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>
     return TinValue::NONE;
 }
 
-fn tin_delete_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, _stack: &mut Vec<TinValue>) -> TinValue{
-    let ctx = intrp.variables.get_mut(&tok).unwrap();
-    ctx.pop();
+fn tin_redefine_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+    let ctx = intrp.variables.entry(tok).or_insert(vec!());
+    
+    if ctx.len() > 0 {
+        *ctx.last_mut().unwrap() = stack.pop().unwrap();
 
-    if ctx.len() == 0 {
-        intrp.variables.remove(&tok);
+    } else {
+        ctx.push(stack.pop().unwrap());
+    }
+
+    return TinValue::NONE;
+}
+
+fn tin_delete_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, _stack: &mut Vec<TinValue>) -> TinValue{
+    if intrp.variables.contains_key(&tok.to_string()) {
+        let ctx = intrp.variables.get_mut(&tok).unwrap();
+        ctx.pop();
+
+        if ctx.len() == 0 {
+            intrp.variables.remove(&tok);
+        }
     }
 
     return TinValue::NONE;
@@ -461,6 +476,7 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"↷", |s| TinToken::FN(s.to_string(), tin_copy)),
 
         (r"→[a-z_]+", |s| TinToken::FN(s[3..].to_string(), tin_define_var)),
+        (r"→.[a-z_]+", |s| TinToken::FN(s[4..].to_string(), tin_redefine_var)),
         (r"←[a-z_]+", |s| TinToken::FN(s[3..].to_string(), tin_delete_var)),
         (r"\.[a-z_]+", |s| TinToken::FN(s[1..].to_string(), tin_get_var)),
 
