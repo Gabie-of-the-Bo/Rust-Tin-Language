@@ -5,8 +5,6 @@ pub fn floor(a: &TinValue) -> TinValue{
         TinValue::INT(n) => TinValue::INT(*n),
         TinValue::FLOAT(n) => TinValue::INT(n.floor() as i64),
         TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(floor).collect()),
-
-        _ => unreachable!()
     }
 }
 
@@ -15,8 +13,6 @@ pub fn ceil(a: &TinValue) -> TinValue{
         TinValue::INT(n) => TinValue::INT(*n),
         TinValue::FLOAT(n) => TinValue::INT(n.ceil() as i64),
         TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(ceil).collect()),
-
-        _ => unreachable!()
     }
 }
 
@@ -42,8 +38,6 @@ pub fn lt(aa: &TinValue, bb: &TinValue) -> TinValue{
         (TinValue::VECTOR(b), TinValue::FLOAT(_)) => TinValue::VECTOR(b.iter().map(|v| lt(v, bb)).collect::<Vec<_>>()),
 
         (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| lt(t.0, t.1)).collect::<Vec<_>>()),
-
-        _ => unreachable!()
     };
 }
 
@@ -61,8 +55,6 @@ pub fn gt(aa: &TinValue, bb: &TinValue) -> TinValue{
         (TinValue::VECTOR(b), TinValue::FLOAT(_)) => TinValue::VECTOR(b.iter().map(|v| gt(v, bb)).collect::<Vec<_>>()),
 
         (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| gt(t.0, t.1)).collect::<Vec<_>>()),
-
-        _ => unreachable!()
     };
 }
 
@@ -80,8 +72,6 @@ pub fn sum(aa: &TinValue, bb: &TinValue) -> TinValue{
         (TinValue::VECTOR(b), TinValue::FLOAT(_)) => TinValue::VECTOR(b.iter().map(|v| sum(v, bb)).collect::<Vec<_>>()),
 
         (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| sum(t.0, t.1)).collect::<Vec<_>>()),
-
-        _ => unreachable!()
     };
 }
 
@@ -99,8 +89,6 @@ pub fn sub(aa: &TinValue, bb: &TinValue) -> TinValue{
         (TinValue::VECTOR(b), TinValue::FLOAT(_)) => TinValue::VECTOR(b.iter().map(|v| sub(v, bb)).collect::<Vec<_>>()),
 
         (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| sub(t.0, t.1)).collect::<Vec<_>>()),
-
-        _ => unreachable!()
     };
 }
 
@@ -118,8 +106,6 @@ pub fn mul(aa: &TinValue, bb: &TinValue) -> TinValue{
         (TinValue::VECTOR(b), TinValue::FLOAT(_)) => TinValue::VECTOR(b.iter().map(|v| mul(v, bb)).collect::<Vec<_>>()),
 
         (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| mul(t.0, t.1)).collect::<Vec<_>>()),
-
-        _ => unreachable!()
     };
 }
 
@@ -137,8 +123,6 @@ pub fn div(aa: &TinValue, bb: &TinValue) -> TinValue{
         (TinValue::VECTOR(b), TinValue::FLOAT(_)) => TinValue::VECTOR(b.iter().map(|v| div(v, bb)).collect::<Vec<_>>()),
 
         (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| div(t.0, t.1)).collect::<Vec<_>>()),
-
-        _ => unreachable!()
     };
 }
 
@@ -156,7 +140,5 @@ pub fn modl(aa: &TinValue, bb: &TinValue) -> TinValue{
         (TinValue::VECTOR(b), TinValue::FLOAT(_)) => TinValue::VECTOR(b.iter().map(|v| modl(v, bb)).collect::<Vec<_>>()),
 
         (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| modl(t.0, t.1)).collect::<Vec<_>>()),
-
-        _ => unreachable!()
     };
 }

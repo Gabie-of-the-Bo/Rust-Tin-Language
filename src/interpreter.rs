@@ -4,9 +4,7 @@ use regex::Regex;
 use crate::stdfuncs::std_tin_functions;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum TinValue {    
-    NONE,
-
+pub enum TinValue {
     INT(i64),
     FLOAT(f64),
 
@@ -19,8 +17,6 @@ impl TinValue{
             TinValue::INT(n) => *n != 0,
             TinValue::FLOAT(n) => *n != 0.0,
             TinValue::VECTOR(v) => v.len() != 0,
-
-            _ => false
         };
     }
 
@@ -28,8 +24,7 @@ impl TinValue{
         return match self{
             TinValue::INT(n) => n.to_string(),
             TinValue::FLOAT(n) => format!("{:.5}", n),
-            TinValue::VECTOR(v) => format!("[{}]", v.iter().map(TinValue::to_string).collect::<Vec<_>>().join(", ")),
-            TinValue::NONE => "NONE".to_string()
+            TinValue::VECTOR(v) => format!("[{}]", v.iter().map(TinValue::to_string).collect::<Vec<_>>().join(", "))
         }
     }
 }
@@ -39,7 +34,7 @@ pub enum TinToken {
     INT(i64),
     FLOAT(f64),
 
-    FN(String, fn(String, &mut TinInterpreter, &Vec<TinToken>, Option<&Vec<TinToken>>, &mut usize, &mut Vec<TinValue>) -> TinValue),
+    FN(String, fn(String, &mut TinInterpreter, &Vec<TinToken>, Option<&Vec<TinToken>>, &mut usize, &mut Vec<TinValue>) -> ()),
     DEF(String)
 }
 
@@ -102,11 +97,9 @@ impl TinInterpreter {
 
                 match opt_i.0.clone(){
                     TinToken::DEF(s) => {
-                        fn exec_func(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>) -> TinValue{
+                        fn exec_func(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
                             let prg = intrp.functions_cache.get(tok.as_str()).cloned().unwrap();
                             intrp.execute(&prg, prog_parent, stack);
-    
-                            return TinValue::NONE;
                         }
     
                         let parts = s.split("|").collect::<Vec<_>>();
@@ -140,15 +133,7 @@ impl TinInterpreter {
             match token{
                 TinToken::INT(n) => stack.push(TinValue::INT(*n)),
                 TinToken::FLOAT(n) => stack.push(TinValue::FLOAT(*n)),
-
-                TinToken::FN(s, f) => {
-                    let res = f(s.to_string(), self, program, parent, &mut ip, stack);
-                    
-                    if res != TinValue::NONE {
-                        stack.push(res);
-                    }
-                }
-
+                TinToken::FN(s, f) => f(s.to_string(), self, program, parent, &mut ip, stack),
                 _ => {}
             };
 
