@@ -1,18 +1,22 @@
 language: rust
+dist: bionic
 
+cache: cargo
 rust:
   - stable
 
 addons:
-  apt:
-    packages:
-      - kcov
+    apt:
+        packages:
+            - libssl-dev
+
+before_script: |
+  cargo install cargo-tarpaulin
 
 script:
   - cargo build --release
   - cargo test --lib
 
 after_success: |
-  ls target/debug/deps/tin-* &&
-  kcov --exclude-pattern=/.cargo,/usr/lib target/cov target/debug/deps/tin-* &&
+  cargo tarpaulin --out Xml
   bash <(curl -s https://codecov.io/bash)
