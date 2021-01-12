@@ -4,6 +4,7 @@ mod tests{
     use rand::Rng;
 
     use crate::interpreter::*;
+    use crate::wrappers;
 
     #[test]
     fn naive_primality_test(){
@@ -174,6 +175,87 @@ mod tests{
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
                        "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
+        }
+    }
+
+    #[test]
+    fn mean(){
+        fn result(v: Vec<TinValue>) -> TinValue{
+            let mut res = TinValue::INT(0);
+            let count = TinValue::INT(v.len() as i64);
+
+            for i in v{
+                res = wrappers::sum(&res, &i);
+            }
+
+            return wrappers::div(&res, &count);
+        }
+
+        let mut rng = rand::thread_rng();
+
+        let mut intrp = TinInterpreter::new();
+
+        let code = "!⍴↶∑/";
+        let program = intrp.parse(code);
+
+        for _ in 0..100{
+            let mut v = vec!();
+
+            for _ in 0..100{
+                v.push(TinValue::INT(rng.gen_range(0..10)));
+            }
+
+            let mut stack = vec!(TinValue::VECTOR(v.clone()));
+            intrp.execute(&program, Option::None, &mut stack);
+            let correct_res = result(v.clone());
+
+            assert_eq!(*stack.last().unwrap(), correct_res, 
+                       "Invalid output for input {}: {} != {}", TinValue::VECTOR(v).to_string(), stack.last().unwrap().to_string(), correct_res.to_string());
+        }
+    }
+
+    #[test]
+    fn variance(){
+        fn result(v: Vec<TinValue>) -> TinValue{
+            let mut res = TinValue::INT(0);
+            let count = TinValue::INT(v.len() as i64);
+
+            for i in &v{
+                res = wrappers::sum(&res, &i);
+            }
+
+            let mean = wrappers::div(&res, &count);
+            res = TinValue::INT(0);
+
+            for i in &v{
+                let mut factor = wrappers::sub(&i, &mean);
+                factor = wrappers::mul(&factor, &factor);
+                res = wrappers::sum(&res, &factor);
+            }
+
+            return wrappers::div(&res, &count);
+        }
+
+        let mut rng = rand::thread_rng();
+
+        let mut intrp = TinInterpreter::new();
+
+        let code = "!!!⍴↶∑/-2↶^∑↶⍴↶/";
+        let program = intrp.parse(code);
+
+        for _ in 0..100{
+            let mut v = vec!();
+
+            for _ in 0..100{
+                v.push(TinValue::INT(rng.gen_range(0..10)));
+            }
+
+            let mut stack = vec!(TinValue::VECTOR(v.clone()));
+            intrp.execute(&program, Option::None, &mut stack);
+            let correct_res = result(v.clone());
+
+            assert_eq!(*stack.last().unwrap(), correct_res, 
+                       "Invalid output for input {}: {} != {}", TinValue::VECTOR(v).to_string(), stack.last().unwrap().to_string(), correct_res.to_string());
         }
     }
 
