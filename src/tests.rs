@@ -353,7 +353,7 @@ mod tests{
 
         let mut intrp = TinInterpreter::new();
 
-        let code = "(!{{}})⌊→n¡.n←n";
+        let code = "(!{{}})⌊↶¡";
         let program = intrp.parse(code);
 
         for i in 1..20{
