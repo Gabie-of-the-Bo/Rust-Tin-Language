@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/Gabie-of-the-Bo/Rust-Tin-Language.svg?branch=develop)](https://travis-ci.com/Gabie-of-the-Bo/Rust-Tin-Language)
+[![Build Status](https://travis-ci.com/Gabie-of-the-Bo/Rust-Tin-Language.svg?branch=develop)](https://travis-ci.com/Gabie-of-the-Bo/Rust-Tin-Language) [![codecov](https://codecov.io/gh/Gabie-of-the-Bo/Rust-Tin-Language/branch/develop/graph/badge.svg?token=6D89914D05)](https://codecov.io/gh/Gabie-of-the-Bo/Rust-Tin-Language)
 
 # Tin Language
 Tin language reference implementation in Rust _(see previous [Python implementation](https://github.com/Gabie-of-the-Bo/Tin-Language))_.

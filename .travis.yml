@@ -13,5 +13,6 @@ script:
   - cargo test --lib
 
 after_success: |
+  ls target/debug/deps/tin-* &&
   kcov --exclude-pattern=/.cargo,/usr/lib target/cov target/debug/deps/tin-* &&
   bash <(curl -s https://codecov.io/bash)
