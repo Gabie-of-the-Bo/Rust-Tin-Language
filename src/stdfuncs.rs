@@ -3,6 +3,10 @@ use crate::interpreter::{*};
 
 use regex::Regex;
 
+fn tin_drop(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
+    stack.pop();
+}
+
 fn tin_dup(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
     stack.push(stack.last().cloned().unwrap());
 }
@@ -444,6 +448,7 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"\d*\.\d+", |s| TinToken::FLOAT(s.parse::<f64>().unwrap())),
 
         // Meta
+        (r"¡", |s| TinToken::FN(s.to_string(), tin_drop)),
         (r"!", |s| TinToken::FN(s.to_string(), tin_dup)),
         (r"↶", |s| TinToken::FN(s.to_string(), tin_swap)),
         (r"↷", |s| TinToken::FN(s.to_string(), tin_copy)),

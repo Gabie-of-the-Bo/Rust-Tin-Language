@@ -308,6 +308,27 @@ mod tests{
     }
 
     #[test]
+    fn zero_vector_generation(){
+        fn result(n: i64) -> TinValue{
+            return TinValue::VECTOR(vec!(TinValue::INT(0); n as usize));
+        }
+
+        let mut intrp = TinInterpreter::new();
+
+        let code = "(⊳ι{¡0})";
+        let program = intrp.parse(code);
+
+        for i in 1..20{
+            let mut stack = vec!(TinValue::INT(i));
+            intrp.execute(&program, Option::None, &mut stack);
+            let correct_res = result(i);
+
+            assert_eq!(*stack.last().unwrap(), correct_res, 
+                       "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
+        }
+    }
+
+    #[test]
     fn identity_matrix(){
         fn result(n: i64) -> TinValue{
             let mut v = vec!();
