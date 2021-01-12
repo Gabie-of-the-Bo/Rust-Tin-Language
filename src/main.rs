@@ -1,5 +1,6 @@
 use tin::interpreter::*;
 
+#[cfg(not(tarpaulin_include))]
 fn main(){
     let mut intrp = TinInterpreter::new();
 

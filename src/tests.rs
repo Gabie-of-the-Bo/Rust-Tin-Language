@@ -52,9 +52,8 @@ mod tests{
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = TinValue::INT(result(i));
 
-            if *stack.last().unwrap() != correct_res {
-                panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
-            }
+            assert_eq!(*stack.last().unwrap(), correct_res, 
+                       "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
         }
     }
 
@@ -77,9 +76,8 @@ mod tests{
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = TinValue::INT(result(i));
 
-            if *stack.last().unwrap() != correct_res {
-                panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
-            }
+            assert_eq!(*stack.last().unwrap(), correct_res, 
+                       "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
         }
     }
 
@@ -110,9 +108,8 @@ mod tests{
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = TinValue::INT(result(i));
 
-            if *stack.last().unwrap() != correct_res {
-                panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
-            }
+            assert_eq!(*stack.last().unwrap(), correct_res, 
+                       "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
         }
     }
 
@@ -143,9 +140,8 @@ mod tests{
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = TinValue::INT(result(i));
 
-            if *stack.last().unwrap() != correct_res {
-                panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
-            }
+            assert_eq!(*stack.last().unwrap(), correct_res, 
+                       "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
         }
     }
 
@@ -192,9 +188,8 @@ mod tests{
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = result(v.clone());
 
-            if *stack.last().unwrap() != correct_res {
-                panic!(format!("Invalid output for input {}: {} != {}", TinValue::VECTOR(v).to_string(), stack.last().unwrap().to_string(), correct_res.to_string()));
-            }
+            assert_eq!(*stack.last().unwrap(), correct_res, 
+                       "Invalid output for input {}: {} != {}", TinValue::VECTOR(v).to_string(), stack.last().unwrap().to_string(), correct_res.to_string());
         }
     }
 
@@ -223,9 +218,8 @@ mod tests{
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = result(i);
 
-            if *stack.last().unwrap() != correct_res {
-                panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
-            }
+            assert_eq!(*stack.last().unwrap(), correct_res, 
+                       "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
         }
     }
 }
