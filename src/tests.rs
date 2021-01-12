@@ -329,6 +329,60 @@ mod tests{
     }
 
     #[test]
+    fn min_in_matrix(){
+        fn result(v: Vec<TinValue>) -> TinValue{
+            let mut res = Option::None;
+
+            for i in v{
+                if let TinValue::VECTOR(vv) = i {
+                    for j in vv{
+                        if res.is_none() {
+                            res = Some(j);
+                        
+                        } else if let TinValue::INT(1) = wrappers::lt(&j, res.as_ref().unwrap()){
+                            res = Some(j);
+                        }
+                    }
+                }
+            }
+
+            return res.unwrap();
+        }
+
+        let mut rng = rand::thread_rng();
+
+        let mut intrp = TinInterpreter::new();
+
+        let code = "(!{{}})⌊→n¡.n←n";
+        let program = intrp.parse(code);
+
+        for i in 1..20{
+            let two = TinValue::INT(2);
+            let mut v = vec!();
+
+            for _ in 0..i{
+                let mut row = vec!();
+
+                for _ in 0..i{
+                    let elem = TinValue::INT(rng.gen_range(0..1000000));
+                    row.push(wrappers::div(&elem, &two));
+                }
+
+                v.push(TinValue::VECTOR(row));
+            }
+
+
+            let mut stack = vec!(TinValue::VECTOR(v.clone()));
+            println!("{}", stack.last().unwrap().to_string());
+            intrp.execute(&program, Option::None, &mut stack);
+            let correct_res = result(v);
+
+            assert_eq!(*stack.last().unwrap(), correct_res, 
+                       "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
+        }
+    }
+
+    #[test]
     fn identity_matrix(){
         fn result(n: i64) -> TinValue{
             let mut v = vec!();
