@@ -1,5 +1,8 @@
 #[cfg(test)]
 mod tests{
+    use std::collections::HashMap;
+    use rand::Rng;
+
     use crate::interpreter::*;
 
     #[test]
@@ -92,6 +95,55 @@ mod tests{
 
             if *stack.last().unwrap() != correct_res {
                 panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
+            }
+        }
+    }
+
+    #[test]
+    fn mode(){
+        fn result(v: Vec<TinValue>) -> TinValue{
+            let mut counts = HashMap::new();
+
+            for i in &v {
+                if let TinValue::INT(j) = i {
+                    counts.entry(j).or_insert(0);
+                    *counts.get_mut(&j).unwrap() += 1;
+                }
+            }
+
+            let max_count = *counts.iter().max_by_key(|t| t.1).unwrap().1;
+
+            for i in &v {
+                if let TinValue::INT(j) = i{
+                    if *counts.get(&j).unwrap() == max_count {
+                        return i.clone();
+                    }
+                }
+            }
+
+            return TinValue::INT(0);
+        }
+
+        let mut rng = rand::thread_rng();
+
+        let mut intrp = TinInterpreter::new();
+
+        let code = "→n(.n{.n↶#})!⌈º0↓.n↶↓←n";
+        let program = intrp.parse(code);
+
+        for _ in 0..100{
+            let mut v = vec!();
+
+            for _ in 0..100{
+                v.push(TinValue::INT(rng.gen_range(0..10)));
+            }
+
+            let mut stack = vec!(TinValue::VECTOR(v.clone()));
+            intrp.execute(&program, Option::None, &mut stack);
+            let correct_res = result(v.clone());
+
+            if *stack.last().unwrap() != correct_res {
+                panic!(format!("Invalid output for input {}: {} != {}", TinValue::VECTOR(v).to_string(), stack.last().unwrap().to_string(), correct_res.to_string()));
             }
         }
     }
