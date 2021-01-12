@@ -1,6 +1,17 @@
 language: rust
+
 rust:
   - stable
+
+addons:
+  apt:
+    packages:
+      - kcov
+
 script:
-  - cargo build
-  - cargo test
+  - cargo build --release
+  - cargo test --lib
+
+after_success: |
+  kcov --exclude-pattern=/.cargo,/usr/lib --verify target/cov target/debug/deps/tin-* &&
+  bash <(curl -s https://codecov.io/bash)
