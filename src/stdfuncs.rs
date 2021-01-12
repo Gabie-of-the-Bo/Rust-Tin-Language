@@ -179,6 +179,19 @@ fn tin_mod(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     *stack.last_mut().unwrap() = wrappers::modl(&a, &b);
 }
 
+fn tin_pow(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
+    let a = stack.pop().unwrap();
+    let b = stack.last().unwrap();
+
+    *stack.last_mut().unwrap() = wrappers::pow(&a, &b);
+}
+
+fn tin_sqrt(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
+    let a = stack.last().unwrap();
+
+    *stack.last_mut().unwrap() = wrappers::sqrt(&a);
+}
+
 fn tin_inc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
     let one = TinValue::INT(1);
 
@@ -459,12 +472,15 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"·", |s| TinToken::FN(s.to_string(), tin_mul)),
         (r"/", |s| TinToken::FN(s.to_string(), tin_div)),
         (r"%", |s| TinToken::FN(s.to_string(), tin_mod)),
+        (r"\^", |s| TinToken::FN(s.to_string(), tin_pow)),
+
+        (r"√", |s| TinToken::FN(s.to_string(), tin_sqrt)),
 
         (r"⊳", |s| TinToken::FN(s.to_string(), tin_inc)),
         (r"⊲", |s| TinToken::FN(s.to_string(), tin_dec)),
 
-        (r"⌉", |s| TinToken::FN(s.to_string(), tin_floor)),
-        (r"⌋", |s| TinToken::FN(s.to_string(), tin_ceil)),
+        (r"⌉", |s| TinToken::FN(s.to_string(), tin_ceil)),
+        (r"⌋", |s| TinToken::FN(s.to_string(), tin_floor)),
 
         (r"𝔹", |s| TinToken::FN(s.to_string(), tin_truthy)),
 

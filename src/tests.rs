@@ -146,6 +146,38 @@ mod tests{
     }
 
     #[test]
+    fn binet_fibonacci(){
+        fn result(n: i64) -> i64{
+            let mut its = [0, 1];
+
+            if n < 2 {
+                return n;
+            
+            } else {
+                for _ in 1..n {
+                    its = [its[1], its[0] + its[1]];
+                }
+
+                return its[1];
+            }
+        }
+
+        let mut intrp = TinInterpreter::new();
+
+        let code = "2 5√⊳/^5√↶/.5+⌋";
+        let program = intrp.parse(code);
+
+        for i in 0..45{
+            let mut stack = vec!(TinValue::INT(i));
+            intrp.execute(&program, Option::None, &mut stack);
+            let correct_res = TinValue::INT(result(i));
+
+            assert_eq!(*stack.last().unwrap(), correct_res, 
+                       "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
+        }
+    }
+
+    #[test]
     fn mode(){
         fn result(v: Vec<TinValue>) -> TinValue{
             let mut counts = HashMap::new();

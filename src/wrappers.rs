@@ -142,3 +142,28 @@ pub fn modl(aa: &TinValue, bb: &TinValue) -> TinValue{
         (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| modl(t.0, t.1)).collect::<Vec<_>>()),
     };
 }
+
+pub fn pow(aa: &TinValue, bb: &TinValue) -> TinValue{
+    return match (aa, bb) {
+        (TinValue::INT(a), TinValue::INT(b)) => TinValue::INT(a.pow(*b as u32)),
+        (TinValue::INT(a), TinValue::FLOAT(b)) => TinValue::FLOAT((*a as f64).powf(*b)),
+        (TinValue::FLOAT(a), TinValue::INT(b)) => TinValue::FLOAT(a.powf(*b as f64)),
+        (TinValue::FLOAT(a), TinValue::FLOAT(b)) => TinValue::FLOAT(a.powf(*b)),
+
+        (TinValue::INT(_), TinValue::VECTOR(b)) => TinValue::VECTOR(b.iter().map(|v| pow(aa, v)).collect::<Vec<_>>()),
+        (TinValue::VECTOR(b), TinValue::INT(_)) => TinValue::VECTOR(b.iter().map(|v| pow(v, bb)).collect::<Vec<_>>()),
+
+        (TinValue::FLOAT(_), TinValue::VECTOR(b)) => TinValue::VECTOR(b.iter().map(|v| pow(aa, v)).collect::<Vec<_>>()),
+        (TinValue::VECTOR(b), TinValue::FLOAT(_)) => TinValue::VECTOR(b.iter().map(|v| pow(v, bb)).collect::<Vec<_>>()),
+
+        (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| pow(t.0, t.1)).collect::<Vec<_>>()),
+    };
+}
+
+pub fn sqrt(a: &TinValue) -> TinValue{
+    return match a{
+        TinValue::INT(n) => TinValue::FLOAT((*n as f64).sqrt()),
+        TinValue::FLOAT(n) => TinValue::FLOAT(n.sqrt()),
+        TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(sqrt).collect()),
+    }
+}
