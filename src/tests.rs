@@ -197,4 +197,35 @@ mod tests{
             }
         }
     }
+
+    #[test]
+    fn identity_matrix(){
+        fn result(n: i64) -> TinValue{
+            let mut v = vec!();
+
+            for i in 0..n {
+                let mut row = vec!(TinValue::INT(0); n as usize);
+                row[i as usize] = TinValue::INT(1);
+
+                v.push(TinValue::VECTOR(row));
+            }
+
+            return TinValue::VECTOR(v);
+        }
+
+        let mut intrp = TinInterpreter::new();
+
+        let code = "→n(.nι{.nι!-↶1↶↑})←n";
+        let program = intrp.parse(code);
+
+        for i in 1..20{
+            let mut stack = vec!(TinValue::INT(i));
+            intrp.execute(&program, Option::None, &mut stack);
+            let correct_res = result(i);
+
+            if *stack.last().unwrap() != correct_res {
+                panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
+            }
+        }
+    }
 }
