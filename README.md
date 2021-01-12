@@ -16,24 +16,76 @@ Tin features the following:
 This language aims not to be specialized, so you can expect some intrincate statistics module or things like that to be developed, but they **will not** be part of the official standard function list. Feel free to open an issue if you think an specific function should be added to the standard list and it will be reviewed as an option if it is generic enough.
 
 # Tutorial
-_Coming soon :)_
+_Coming soon, just wait for the language to stabilize a bit :)_
 
 # Examples
 
-**Naive primality test:**
+Simple factorial:
+```
+ι⊳∏
+
+ι            Create a vector from 0 to the input 
+⊳            Increment the numbers by one
+∏            Multiply every number
+```
+
+Arithmetic mean:
+```
+!⍴↶∑/
+
+!            Duplicate the last element of the stack
+⍴            Get the length of the input vector
+↶            Swap the last two element of the stack
+∑            Sum the elements of the vector
+/            Divide the sum by the length
+```
+
+Naive primality test:
 ```
 →n(.nι``.n%∀1.n>)∀←n
 
 →n           Define the variable 'n'
-  (          Start a storer block
-    .nι      Create a vector from 0 to 'n'
-    ``       Drop the first two values
-    .n%      Divide all the values by 'n' and take the remainder
-    ∀        Check if they are all different to zero (first value)
-    1.n>     Additionally, check if n is larger than 1 (second value)
-  )          End the storer block. A vector of size 2 will be added to the stack
+(            Start a storer block
+  .nι        Create a vector from 0 to 'n'
+  ``         Drop the first two values
+  .n%        Divide all the values by 'n' and take the remainder
+  ∀          Check if they are all different to zero (first value)
+  1.n>       Additionally, check if n is larger than 1 (second value)
+)            End the storer block. A vector of size 2 will be added to the stack
 ∀            Check if both values are different to zero
 ←n           Drop the variable 'n'
+```
+
+Recursive factorial:
+```
+◊⟨!!⊲∇·→n⟩:⟨1→n⟩.n←n
+
+◊            Non-consuming skip. Skip next operation if the input is 0
+⟨            Start code block. The full block is considered an operation
+  !!         Duplicate the last element of the stack twice
+  ⊲∇        Decrement the last element and call the program recursively
+  ·          Multiply the last two numbers in the stack
+  →n         Define the result as the variable 'n'
+⟩            End code block
+:            Else
+⟨            Start code block
+  1→n        Set variable 'n' to 1
+⟩            End code block
+.n←n         Return 'n' and clean up
+```
+
+Recursive fibonacci numbers:
+```
+!1<?⟨⊲!⊲∇↶∇+⟩
+
+!            Duplicate the last element of the stack
+1<?          Skip the next operation if the input is less than 1
+⟨            Start code block
+  ⊲!⊲       Decrement, duplicate and decrement again (generate input - 1 and input - 2)
+  ∇         Call recursively for input - 1
+  ↶∇        Swap the last two values in the stack and call recursively for input - 2 
+  +          Sum fib(input - 1) and  fib(input - 2) 
+⟩            End code block
 ```
 
 # Project status
