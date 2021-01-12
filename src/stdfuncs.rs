@@ -436,7 +436,7 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"↷", |s| TinToken::FN(s.to_string(), tin_copy)),
 
         (r"→[a-z_]+", |s| TinToken::FN(s[3..].to_string(), tin_define_var)),
-        (r"→.[a-z_]+", |s| TinToken::FN(s[4..].to_string(), tin_redefine_var)),
+        (r"→\.[a-z_]+", |s| TinToken::FN(s[4..].to_string(), tin_redefine_var)),
         (r"←[a-z_]+", |s| TinToken::FN(s[3..].to_string(), tin_delete_var)),
         (r"\.[a-z_]+", |s| TinToken::FN(s[1..].to_string(), tin_get_var)),
 
