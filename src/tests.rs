@@ -34,6 +34,56 @@ mod tests{
     }
 
     #[test]
+    fn iterative_factorial(){
+        fn result(n: i64) -> i64{
+            return match n {
+                0 => 1,
+                n => n * result(n - 1)
+            };
+        }
+
+        let mut intrp = TinInterpreter::new();
+
+        let code = "ι⊳∏";
+        let program = intrp.parse(code);
+
+        for i in 0..20{
+            let mut stack = vec!(TinValue::INT(i));
+            intrp.execute(&program, Option::None, &mut stack);
+            let correct_res = TinValue::INT(result(i));
+
+            if *stack.last().unwrap() != correct_res {
+                panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
+            }
+        }
+    }
+
+    #[test]
+    fn recursive_factorial(){
+        fn result(n: i64) -> i64{
+            return match n {
+                0 => 1,
+                n => n * result(n - 1)
+            };
+        }
+
+        let mut intrp = TinInterpreter::new();
+
+        let code = "◊⟨!!⊲∇·→n⟩:⟨1→n⟩.n←n";
+        let program = intrp.parse(code);
+
+        for i in 0..20{
+            let mut stack = vec!(TinValue::INT(i));
+            intrp.execute(&program, Option::None, &mut stack);
+            let correct_res = TinValue::INT(result(i));
+
+            if *stack.last().unwrap() != correct_res {
+                panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
+            }
+        }
+    }
+
+    #[test]
     fn recursive_fibonacci(){
         fn result(n: i64) -> i64{
             let mut its = [0, 1];
