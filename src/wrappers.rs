@@ -24,6 +24,14 @@ pub fn truthy(a: &TinValue) -> TinValue{
     }
 }
 
+pub fn neg(a: &TinValue) -> TinValue{
+    return match a{
+        TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(neg).collect()),
+
+        _ => TinValue::INT((!a.truthy()) as i64)
+    }
+}
+
 pub fn lt(aa: &TinValue, bb: &TinValue) -> TinValue{
     return match (aa, bb) {
         (TinValue::INT(a), TinValue::INT(b)) => TinValue::INT((a < b) as i64),

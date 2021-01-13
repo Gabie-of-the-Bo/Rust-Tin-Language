@@ -35,6 +35,34 @@ mod tests{
     }
 
     #[test]
+    fn divisor_count(){
+        fn result(n: i64) -> i64{
+            let mut res = 0;
+
+            for i in 0..n{
+                res += (n % (i + 1) == 0) as i64;
+            }
+            
+            return res;
+        }
+
+        let mut intrp = TinInterpreter::new();
+
+        let code = "!ι⊳↶%𝔹¬∑";
+        let program = intrp.parse(code);
+
+        for i in 0..100{
+            let mut stack = vec!(TinValue::INT(i));
+            intrp.execute(&program, Option::None, &mut stack);
+            let correct_res = TinValue::INT(result(i));
+
+            if *stack.last().unwrap() != correct_res {
+                panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
+            }
+        }
+    }
+
+    #[test]
     fn iterative_factorial(){
         fn result(n: i64) -> i64{
             return match n {

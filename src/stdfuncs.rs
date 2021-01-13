@@ -221,6 +221,10 @@ fn tin_truthy(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, 
     *stack.last_mut().unwrap() = wrappers::truthy(&stack.last().unwrap());
 }
 
+fn tin_neg(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
+    *stack.last_mut().unwrap() = wrappers::neg(&stack.last().unwrap());
+}
+
 fn tin_any(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
     let res = match stack.pop().unwrap(){
         TinValue::VECTOR(v) => TinValue::INT(v.iter().any(TinValue::truthy) as i64),
@@ -487,9 +491,11 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"⌉", |s| TinToken::FN(s.to_string(), tin_ceil)),
         (r"⌋", |s| TinToken::FN(s.to_string(), tin_floor)),
 
+        // Logic
         (r"𝔹", |s| TinToken::FN(s.to_string(), tin_truthy)),
 
-        // Logic
+        (r"¬", |s| TinToken::FN(s.to_string(), tin_neg)),
+
         (r"<", |s| TinToken::FN(s.to_string(), tin_lt)),
         (r">", |s| TinToken::FN(s.to_string(), tin_gt)),
 
