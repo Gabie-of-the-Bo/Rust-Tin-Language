@@ -20,7 +20,7 @@ mod tests{
 
         let mut intrp = TinInterpreter::new();
 
-        let code = "→n(.nι``.n%∀1.n>)∀←n";
+        let code = "→n.nι``.n%∀1.n>∧←n";
         let program = intrp.parse(code);
 
         for i in 0..1000{

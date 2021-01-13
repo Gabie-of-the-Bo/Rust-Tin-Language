@@ -225,6 +225,20 @@ fn tin_neg(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     *stack.last_mut().unwrap() = wrappers::neg(&stack.last().unwrap());
 }
 
+fn tin_or(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
+    let a = stack.pop().unwrap();
+    let b = stack.last().unwrap();
+
+    *stack.last_mut().unwrap() = wrappers::or(&a, &b);
+}
+
+fn tin_and(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
+    let a = stack.pop().unwrap();
+    let b = stack.last().unwrap();
+
+    *stack.last_mut().unwrap() = wrappers::and(&a, &b);
+}
+
 fn tin_any(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
     let res = match stack.pop().unwrap(){
         TinValue::VECTOR(v) => TinValue::INT(v.iter().any(TinValue::truthy) as i64),
@@ -495,6 +509,8 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"𝔹", |s| TinToken::FN(s.to_string(), tin_truthy)),
 
         (r"¬", |s| TinToken::FN(s.to_string(), tin_neg)),
+        (r"∨", |s| TinToken::FN(s.to_string(), tin_or)),
+        (r"∧", |s| TinToken::FN(s.to_string(), tin_and)),
 
         (r"<", |s| TinToken::FN(s.to_string(), tin_lt)),
         (r">", |s| TinToken::FN(s.to_string(), tin_gt)),

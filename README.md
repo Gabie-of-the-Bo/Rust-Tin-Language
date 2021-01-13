@@ -42,17 +42,15 @@ Arithmetic mean:
 
 Naive primality test:
 ```
-→n(.nι``.n%∀1.n>)∀←n
+→n.nι``.n%∀1.n>∧←n
 
 →n           Define the variable 'n'
-(            Start a storer block
-  .nι        Create a vector from 0 to 'n'
-  ``         Drop the first two values
-  .n%        Divide all the values by 'n' and take the remainder
-  ∀          Check if they are all different to zero (first value)
-  1.n>       Additionally, check if n is larger than 1 (second value)
-)            End the storer block. A vector of size 2 will be added to the stack
-∀            Check if both values are different to zero
+.nι          Create a vector from 0 to 'n'
+``           Drop the first two values
+.n%          Divide all the values by 'n' and take the remainder
+∀            Check if they are all different to zero (first value)
+1.n>         Additionally, check if n is larger than 1 (second value)
+∧            Check if both values are different to zero
 ←n           Drop the variable 'n'
 ```
 

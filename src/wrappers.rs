@@ -32,6 +32,22 @@ pub fn neg(a: &TinValue) -> TinValue{
     }
 }
 
+pub fn or(aa: &TinValue, bb: &TinValue) -> TinValue{
+    return match (aa, bb) {
+        (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| or(t.0, t.1)).collect::<Vec<_>>()),
+
+        _ => TinValue::INT((aa.truthy() || bb.truthy()) as i64)
+    };
+}
+
+pub fn and(aa: &TinValue, bb: &TinValue) -> TinValue{
+    return match (aa, bb) {
+        (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| and(t.0, t.1)).collect::<Vec<_>>()),
+
+        _ => TinValue::INT((aa.truthy() && bb.truthy()) as i64)
+    };
+}
+
 pub fn lt(aa: &TinValue, bb: &TinValue) -> TinValue{
     return match (aa, bb) {
         (TinValue::INT(a), TinValue::INT(b)) => TinValue::INT((a < b) as i64),
