@@ -15,7 +15,7 @@ before_script: |
 
 script:
   - cargo build --release
-  - cargo test --lib
+  - cargo test
 
 after_success: |
   cargo tarpaulin --out Xml

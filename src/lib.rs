@@ -1,4 +1,3 @@
-mod wrappers;
+pub mod wrappers;
 pub mod interpreter;
-mod stdfuncs;
-mod tests;
+pub mod stdfuncs;
