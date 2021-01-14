@@ -430,6 +430,22 @@ fn tin_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _
     };
 }
 
+fn tin_from_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
+    let mut idx_vec = stack.pop().unwrap();
+    let mut ref_vec = stack.last_mut().unwrap();
+    
+    match (&mut ref_vec, &mut idx_vec) {
+        (TinValue::VECTOR(ref_v), TinValue::VECTOR(idx)) => {
+            *ref_v = idx.iter().map(|i| match i {
+                TinValue::INT(n) => ref_v[*n as usize].clone(),
+                _ => unreachable!()
+            }).collect();
+        }
+
+        _ => unreachable!()
+    };
+}
+
 fn drop_first(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
     match stack.last_mut().unwrap() {
         TinValue::VECTOR(v) => {
@@ -535,6 +551,7 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
 
         (r"#", |s| TinToken::FN(s.to_string(), tin_count)),
         (r"º", |s| TinToken::FN(s.to_string(), tin_index)),
+        (r"@", |s| TinToken::FN(s.to_string(), tin_from_index)),
 
         // Functional array manipulation
         (r"`", |s| TinToken::FN(s.to_string(), drop_first)),
