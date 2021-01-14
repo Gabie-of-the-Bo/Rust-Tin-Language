@@ -4,8 +4,8 @@ use tin::interpreter::*;
 fn main(){
     let mut intrp = TinInterpreter::new();
 
-    let program_it = intrp.parse("!!→n1<?⟨2ι→r ⊲ι{(.r1↓ .r∑)→.r}.r1↓→.n⟩.n←r←n");
-    let mut stack = vec!(TinValue::INT(0));
+    let program_it = intrp.parse("|ι⊳∏|→|F| (ι⊳{F1.0/}2)∑ $");
+    let mut stack = vec!(TinValue::INT(10));
 
     intrp.execute(&program_it, Option::None, &mut stack);
 

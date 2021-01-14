@@ -85,6 +85,39 @@ fn iterative_factorial(){
 }
 
 #[test]
+fn e_approximation(){
+    fn result(m: i64) -> f64{
+        fn fact(n: i64) -> i64{
+            return match n {
+                0 => 1,
+                n => n * fact(n - 1)
+            };
+        }
+
+        return (0..m + 1).map(|i| 1 as f64 / fact(i) as f64).sum();
+    }
+
+    let mut intrp = TinInterpreter::new();
+
+    let code = "|ι⊳∏|→|F| (ι⊳{F1.0/}2)∑";
+    let program = intrp.parse(code);
+
+    for i in 2..20{
+        let mut stack = vec!(TinValue::INT(i));
+        intrp.execute(&program, Option::None, &mut stack);
+        let correct_res = TinValue::FLOAT(result(i));
+
+        match (stack.last().unwrap(), &correct_res){
+            (TinValue::FLOAT(a), TinValue::FLOAT(b)) => {
+                assert!((a - b).abs() < 0.001, "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
+            },
+
+            _ => unreachable!()
+        }
+    }
+}
+
+#[test]
 fn recursive_factorial(){
     fn result(n: i64) -> i64{
         return match n {
