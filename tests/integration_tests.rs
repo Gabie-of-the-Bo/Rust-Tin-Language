@@ -559,4 +559,29 @@ mod equivalences{
             assert!(results.windows(2).all(|w| w[0] == w[1]), "equality failed for input {}: {:?}", test_data.to_string(), results)
         }
     }
+
+    #[test]
+    fn from_index(){
+        let mut rng = rand::thread_rng();
+        let mut intrp = TinInterpreter::new();
+
+        let codes = vec!(
+            "@",
+            "→i→v (.i{.v↶↓}) ←i←v"
+        ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
+
+        let gen = |rng: &mut rand::rngs::ThreadRng| (0..1000).map(|_| TinValue::VECTOR((0..10).map(|_| TinValue::INT(rng.gen_range(0..10))).collect())).collect::<Vec<_>>();
+
+        for test_data in gen(&mut rng).iter().zip(gen(&mut rng)){
+            let mut results = vec!();
+
+            for code in &codes{
+                let mut stack = vec!(test_data.0.clone(), test_data.1.clone());
+                intrp.execute(&code, Option::None, &mut stack);
+                results.push(stack.pop().unwrap());
+            }
+
+            assert!(results.windows(2).all(|w| w[0] == w[1]), "equality failed for inputs {} {}: {:?}", test_data.0.to_string(), test_data.1.to_string(), results)
+        }
+    }
 }

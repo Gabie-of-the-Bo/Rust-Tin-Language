@@ -310,6 +310,19 @@ fn get(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_p
     stack.push(res);
 }
 
+fn get_nc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
+    let idx = stack.pop().unwrap();
+    let v = stack.last().unwrap();
+
+    let res = match (idx, v) {
+        (TinValue::INT(a), TinValue::VECTOR(v)) => v[a as usize].clone(),
+
+        _ => unreachable!()
+    };
+    
+    stack.push(res);
+}
+
 fn tin_sum_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
     match stack.pop().unwrap(){
         TinValue::VECTOR(v) => {
@@ -539,6 +552,7 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"ι", |s| TinToken::FN(s.to_string(), iota)),
         (r"□", |s| TinToken::FN(s.to_string(), boxed)),
         (r"↓", |s| TinToken::FN(s.to_string(), get)),
+        (r"\*", |s| TinToken::FN(s.to_string(), get_nc)),
         (r"↑", |s| TinToken::FN(s.to_string(), set)),
 
         (r"∑", |s| TinToken::FN(s.to_string(), tin_sum_all)),
