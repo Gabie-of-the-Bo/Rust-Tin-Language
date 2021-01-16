@@ -584,4 +584,54 @@ mod equivalences{
             assert!(results.windows(2).all(|w| w[0] == w[1]), "equality failed for inputs {} {}: {:?}", test_data.0.to_string(), test_data.1.to_string(), results)
         }
     }
+
+    #[test]
+    fn sort_asc(){
+        let mut rng = rand::thread_rng();
+        let mut intrp = TinInterpreter::new();
+
+        let codes = vec!(
+            "⇑",
+            "!.⇑@"
+        ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
+
+        let gen = |i, l, s| (0..i).map(move |_| TinValue::VECTOR((0..l).map(|_| TinValue::INT(rng.gen_range(0..s))).collect()));
+
+        for test_data in gen(1000, 100, 1000){
+            let mut results = vec!();
+
+            for code in &codes{
+                let mut stack = vec!(test_data.clone());
+                intrp.execute(&code, Option::None, &mut stack);
+                results.push(stack.pop().unwrap());
+            }
+
+            assert!(results.windows(2).all(|w| w[0] == w[1]), "equality failed for input {}: {:?}", test_data.to_string(), results)
+        }
+    }
+
+    #[test]
+    fn sort_desc(){
+        let mut rng = rand::thread_rng();
+        let mut intrp = TinInterpreter::new();
+
+        let codes = vec!(
+            "⇓",
+            "!.⇓@"
+        ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
+
+        let gen = |i, l, s| (0..i).map(move |_| TinValue::VECTOR((0..l).map(|_| TinValue::INT(rng.gen_range(0..s))).collect()));
+
+        for test_data in gen(1000, 100, 1000){
+            let mut results = vec!();
+
+            for code in &codes{
+                let mut stack = vec!(test_data.clone());
+                intrp.execute(&code, Option::None, &mut stack);
+                results.push(stack.pop().unwrap());
+            }
+
+            assert!(results.windows(2).all(|w| w[0] == w[1]), "equality failed for input {}: {:?}", test_data.to_string(), results)
+        }
+    }
 }

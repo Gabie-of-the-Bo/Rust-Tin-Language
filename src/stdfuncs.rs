@@ -459,6 +459,94 @@ fn tin_from_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToke
     };
 }
 
+fn tin_sort_asc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){    
+    match stack.last_mut().unwrap() {
+        TinValue::VECTOR(v) => {
+            v.sort_by(|a, b| {
+                if wrappers::lt(&a, &b) == TinValue::INT(1){
+                    return std::cmp::Ordering::Less;
+                }
+
+                if a == b {
+                    return std::cmp::Ordering::Equal;
+                }
+
+                return std::cmp::Ordering::Greater;
+            });
+        }
+
+        _ => unreachable!()
+    };
+}
+
+fn tin_sort_idx_asc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){    
+    match stack.last_mut().unwrap() {
+        TinValue::VECTOR(v) => {
+            let mut v_cpy = v.iter().enumerate().collect::<Vec<_>>();
+            
+            v_cpy.sort_by(|a, b| {
+                if wrappers::lt(&a.1, &b.1) == TinValue::INT(1) {
+                    return std::cmp::Ordering::Less;
+                }
+
+                if a.1 == b.1 {
+                    return std::cmp::Ordering::Equal;
+                }
+
+                return std::cmp::Ordering::Greater;
+            });
+
+            *v = v_cpy.iter().map(|t| TinValue::INT(t.0 as i64)).collect();
+        }
+
+        _ => unreachable!()
+    };
+}
+
+fn tin_sort_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){    
+    match stack.last_mut().unwrap() {
+        TinValue::VECTOR(v) => {
+            v.sort_by(|a, b| {
+                if wrappers::gt(&a, &b) == TinValue::INT(1){
+                    return std::cmp::Ordering::Less;
+                }
+
+                if a == b {
+                    return std::cmp::Ordering::Equal;
+                }
+
+                return std::cmp::Ordering::Greater;
+            });
+        }
+
+        _ => unreachable!()
+    };
+}
+
+fn tin_sort_idx_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){    
+    match stack.last_mut().unwrap() {
+        TinValue::VECTOR(v) => {
+            let mut v_cpy = v.iter().enumerate().collect::<Vec<_>>();
+            
+            v_cpy.sort_by(|a, b| {
+                if wrappers::gt(&a.1, &b.1) == TinValue::INT(1) {
+                    return std::cmp::Ordering::Less;
+                }
+
+                if a.1 == b.1 {
+                    return std::cmp::Ordering::Equal;
+                }
+
+                return std::cmp::Ordering::Greater;
+            });
+
+            *v = v_cpy.iter().map(|t| TinValue::INT(t.0 as i64)).collect();
+        }
+
+        _ => unreachable!()
+    };
+}
+
 fn drop_first(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
     match stack.last_mut().unwrap() {
         TinValue::VECTOR(v) => {
@@ -566,6 +654,11 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"#", |s| TinToken::FN(s.to_string(), tin_count)),
         (r"º", |s| TinToken::FN(s.to_string(), tin_index)),
         (r"@", |s| TinToken::FN(s.to_string(), tin_from_index)),
+        
+        (r"⇑", |s| TinToken::FN(s.to_string(), tin_sort_asc)),
+        (r".⇑", |s| TinToken::FN(s.to_string(), tin_sort_idx_asc)),
+        (r"⇓", |s| TinToken::FN(s.to_string(), tin_sort_desc)),
+        (r".⇓", |s| TinToken::FN(s.to_string(), tin_sort_idx_desc)),
 
         // Functional array manipulation
         (r"`", |s| TinToken::FN(s.to_string(), drop_first)),
