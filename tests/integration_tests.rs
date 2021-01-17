@@ -472,6 +472,19 @@ mod full_programs{
                         "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
         }
     }
+
+    #[test]
+    fn collatz_conjecture(){
+        let mut intrp = TinInterpreter::new();
+
+        let code = "→.n .n2↶%◊⟨3.n·⊳→.n⟩:⟨2.n/→.n⟩ .n1<?⟨.n∇⟩ ←n";
+        let program = intrp.parse(code);
+
+        for i in 1..100{
+            let mut stack = vec!(TinValue::INT(i));
+            intrp.execute(&program, Option::None, &mut stack); // This only has to execute in order to be correct
+        }
+    }
 }
 
 #[cfg(test)]
