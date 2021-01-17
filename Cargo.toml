@@ -9,6 +9,8 @@ edition = "2018"
 [dependencies]
 regex = "1"
 rand = "*"
+num_cpus = "*"
+rayon = "*"
 
 [dev-dependencies]
 criterion = "0.3"

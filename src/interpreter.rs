@@ -11,6 +11,9 @@ pub enum TinValue {
     VECTOR(Vec<TinValue>)
 }
 
+unsafe impl Send for TinValue {}
+unsafe impl Sync for TinValue {}
+
 impl TinValue{
     pub fn truthy(&self) -> bool{
         return match self{
@@ -46,7 +49,9 @@ pub struct TinInterpreter {
     pub storer_stack: Vec<usize>,
     pub map_stack: Vec<(i64, Vec<TinValue>, usize, usize, Vec<TinValue>)>,
     pub parse_cache: HashMap<String, Vec<TinToken>>,
-    pub functions_cache: HashMap<String, Vec<TinToken>>
+    pub functions_cache: HashMap<String, Vec<TinToken>>,
+
+    pub parallel: bool
 }
 
 impl TinInterpreter {
@@ -58,7 +63,8 @@ impl TinInterpreter {
             storer_stack: vec!(),
             map_stack: vec!(),
             parse_cache: HashMap::new(),
-            functions_cache: HashMap::new()
+            functions_cache: HashMap::new(),
+            parallel: true
         }
     }
 

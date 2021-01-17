@@ -1,5 +1,6 @@
 use crate::wrappers;
 use crate::interpreter::{*};
+use crate::parallelism;
 
 use regex::Regex;
 
@@ -359,16 +360,21 @@ fn get_nc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pro
     stack.push(res);
 }
 
-fn tin_sum_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_sum_all(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     match stack.pop().unwrap(){
         TinValue::VECTOR(v) => {
-            let mut res = TinValue::INT(0);
+            if intrp.parallel{
+                stack.push(parallelism::parallel_sum_all(v));
 
-            for i in v{
-                res = wrappers::sum(&res, &i);
+            } else{
+                let mut res = TinValue::INT(0);
+
+                for i in v{
+                    res = wrappers::sum(&res, &i);
+                }
+    
+                stack.push(res);
             }
-
-            stack.push(res);
         },
 
         _ => unreachable!()
