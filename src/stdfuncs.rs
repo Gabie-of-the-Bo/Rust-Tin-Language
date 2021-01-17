@@ -163,6 +163,13 @@ fn block(tok: String, intrp: &mut TinInterpreter, prog: &Vec<TinToken>, _prog_pa
     intrp.execute(&program, Option::Some(prog), stack);
 }
 
+fn tin_eq(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+    let a = stack.pop().unwrap();
+    let b = stack.last().unwrap();
+
+    *stack.last_mut().unwrap() = TinValue::INT((a == *b) as i64);
+}
+
 fn tin_lt(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     let a = stack.pop().unwrap();
     let b = stack.last().unwrap();
@@ -576,6 +583,16 @@ fn tin_sort_idx_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinT
     };
 }
 
+fn tin_append(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+    let elem = stack.pop().unwrap();
+
+    match stack.last_mut().unwrap() {
+        TinValue::VECTOR(v) => v.push(elem),
+
+        _ => unreachable!()
+    };
+}
+
 fn drop_first(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     match stack.last_mut().unwrap() {
         TinValue::VECTOR(v) => {
@@ -660,6 +677,7 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"∨", |s| TinToken::FN(s.to_string(), tin_or)),
         (r"∧", |s| TinToken::FN(s.to_string(), tin_and)),
 
+        (r"=", |s| TinToken::FN(s.to_string(), tin_eq)),
         (r"<", |s| TinToken::FN(s.to_string(), tin_lt)),
         (r">", |s| TinToken::FN(s.to_string(), tin_gt)),
 
@@ -690,6 +708,8 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r".⇑", |s| TinToken::FN(s.to_string(), tin_sort_idx_asc)),
         (r"⇓", |s| TinToken::FN(s.to_string(), tin_sort_desc)),
         (r".⇓", |s| TinToken::FN(s.to_string(), tin_sort_idx_desc)),
+
+        (r",", |s| TinToken::FN(s.to_string(), tin_append)),
 
         // Functional array manipulation
         (r"`", |s| TinToken::FN(s.to_string(), drop_first)),
