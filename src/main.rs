@@ -4,10 +4,10 @@ use tin::interpreter::*;
 fn main(){
     let mut intrp = TinInterpreter::new();
 
-    let program_it = intrp.parse("(1 1 1 1) 𝔹!∑↶⍴-¬ $");
+    let program_it = intrp.parse("10ι[2·] $");
     let mut stack = vec!();
 
     intrp.execute(&program_it, Option::None, &mut stack);
 
-    println!("{:?}", intrp.variables);
+    //println!("{:?}", intrp.variables);
 }

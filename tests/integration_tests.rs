@@ -414,7 +414,7 @@ mod full_programs{
 
         let mut intrp = TinInterpreter::new();
 
-        let code = "(!{{}})⌊↶¡";
+        let code = "[{}]⌊";
         let program = intrp.parse(code);
 
         for i in 1..20{
@@ -567,6 +567,7 @@ mod equivalences{
 
         let codes = vec!(
             "@",
+            "[*]↶¡",
             "→i→v (.i{.v↶↓}) ←i←v"
         ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
 

@@ -34,7 +34,7 @@ pub enum TinToken {
     INT(i64),
     FLOAT(f64),
 
-    FN(String, fn(String, &mut TinInterpreter, &Vec<TinToken>, Option<&Vec<TinToken>>, &mut usize, &mut Vec<TinValue>) -> ()),
+    FN(String, fn(String, &mut TinInterpreter, &Vec<TinToken>, Option<&Vec<TinToken>>, &mut i64, &mut Vec<TinValue>) -> ()),
     DEF(String)
 }
 
@@ -42,8 +42,9 @@ pub struct TinInterpreter {
     pub token_list: Vec<(Regex, fn(&str) -> TinToken)>,
 
     pub variables: HashMap<String, Vec<TinValue>>,
-    pub loop_stack: Vec<(usize, Vec<TinValue>, usize)>,
+    pub loop_stack: Vec<(i64, Vec<TinValue>, usize)>,
     pub storer_stack: Vec<usize>,
+    pub map_stack: Vec<(i64, Vec<TinValue>, usize, usize, Vec<TinValue>)>,
     pub parse_cache: HashMap<String, Vec<TinToken>>,
     pub functions_cache: HashMap<String, Vec<TinToken>>
 }
@@ -55,6 +56,7 @@ impl TinInterpreter {
             variables: HashMap::new(),
             loop_stack: vec!(),
             storer_stack: vec!(),
+            map_stack: vec!(),
             parse_cache: HashMap::new(),
             functions_cache: HashMap::new()
         }
@@ -97,7 +99,7 @@ impl TinInterpreter {
 
                 match opt_i.0.clone(){
                     TinToken::DEF(s) => {
-                        fn exec_func(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, prog_parent: Option<&Vec<TinToken>>, _ip: &mut usize, stack: &mut Vec<TinValue>){
+                        fn exec_func(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
                             let prg = intrp.functions_cache.get(tok.as_str()).cloned().unwrap();
                             intrp.execute(&prg, prog_parent, stack);
                         }
@@ -125,10 +127,10 @@ impl TinInterpreter {
     }
 
     pub fn execute(&mut self, program: &Vec<TinToken>, parent: Option<&Vec<TinToken>>, stack: &mut Vec<TinValue>){
-        let mut ip = 0;
+        let mut ip: i64 = 0;
 
-        while ip < program.len(){
-            let token = &program[ip];
+        while ip < program.len() as i64{
+            let token = &program[ip as usize];
 
             match token{
                 TinToken::INT(n) => stack.push(TinValue::INT(*n)),
