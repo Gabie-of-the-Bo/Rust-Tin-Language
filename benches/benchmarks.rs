@@ -4,7 +4,7 @@ use rand::Rng;
 
 pub fn naive_primality_benchmark(c: &mut Criterion) {
     let mut intrp = TinInterpreter::new();
-    let program = intrp.parse("→n(.nι``.n%∀1.n>)∀←n");
+    let program = intrp.parse("→n.n√⊳ι``.n%∀1.n>∧←n");
 
     let mut group = c.benchmark_group("Naive primality");
 
