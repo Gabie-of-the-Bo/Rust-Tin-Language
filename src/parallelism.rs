@@ -8,6 +8,18 @@ lazy_static!{
     pub static ref CORES: usize = num_cpus::get_physical();
 }
 
+pub fn parallel_any(vector: Vec<TinValue>) -> TinValue {
+    return TinValue::INT(vector.par_iter().any(TinValue::truthy) as i64)
+}
+
+pub fn parallel_none(vector: Vec<TinValue>) -> TinValue {
+    return TinValue::INT(!vector.par_iter().any(TinValue::truthy) as i64)
+}
+
+pub fn parallel_all(vector: Vec<TinValue>) -> TinValue {
+    return TinValue::INT(vector.par_iter().all(TinValue::truthy) as i64)
+}
+
 pub fn parallel_sum_all(vector: Vec<TinValue>) -> TinValue {
     return vector.into_par_iter().reduce(|| TinValue::INT(0), |a, b| wrappers::sum(&a, &b));
 }

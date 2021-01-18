@@ -276,9 +276,16 @@ fn tin_and(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     *stack.last_mut().unwrap() = wrappers::and(&a, &b);
 }
 
-fn tin_any(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_any(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     let res = match stack.pop().unwrap(){
-        TinValue::VECTOR(v) => TinValue::INT(v.iter().any(TinValue::truthy) as i64),
+        TinValue::VECTOR(v) => {
+            if intrp.parallelizable(v.len()){
+                parallelism::parallel_any(v)
+
+            } else{
+                TinValue::INT(v.iter().any(TinValue::truthy) as i64)
+            }
+        },
 
         _ => unreachable!()
     };
@@ -286,9 +293,16 @@ fn tin_any(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     stack.push(res);
 }
 
-fn tin_none(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_none(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     let res = match stack.pop().unwrap(){
-        TinValue::VECTOR(v) => TinValue::INT(!v.iter().any(TinValue::truthy) as i64),
+        TinValue::VECTOR(v) => {
+            if intrp.parallelizable(v.len()){
+                parallelism::parallel_none(v)
+
+            } else{
+                TinValue::INT(!v.iter().any(TinValue::truthy) as i64)
+            }
+        },
 
         _ => unreachable!()
     };
@@ -296,10 +310,17 @@ fn tin_none(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _p
     stack.push(res);
 }
 
-fn tin_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_all(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     let res = match stack.pop().unwrap(){
-        TinValue::VECTOR(v) => TinValue::INT(v.iter().all(TinValue::truthy) as i64),
+        TinValue::VECTOR(v) => {
+            if intrp.parallelizable(v.len()){
+                parallelism::parallel_all(v)
 
+            } else{
+                TinValue::INT(v.iter().all(TinValue::truthy) as i64)
+            }
+        },
+        
         _ => unreachable!()
     };
     
