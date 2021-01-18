@@ -460,20 +460,25 @@ fn tin_min(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pro
     };
 }
 
-fn tin_count(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_count(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     let elem = stack.pop().unwrap();
     
     match stack.pop().unwrap() {
         TinValue::VECTOR(v) => {
-            let mut res = 0;
+            if intrp.parallelizable(v.len()) {
+                stack.push(parallelism::parallel_count(v, elem));
 
-            for i in v{
-                if i == elem {
-                    res += 1;
+            } else{
+                let mut res = 0;
+
+                for i in v{
+                    if i == elem {
+                        res += 1;
+                    }
                 }
+    
+                stack.push(TinValue::INT(res));
             }
-
-            stack.push(TinValue::INT(res));
         }
 
         _ => unreachable!()

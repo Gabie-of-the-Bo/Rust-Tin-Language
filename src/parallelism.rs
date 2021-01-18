@@ -16,6 +16,10 @@ pub fn parallel_mul_all(vector: Vec<TinValue>) -> TinValue {
     return vector.into_par_iter().reduce(|| TinValue::INT(1), |a, b| wrappers::mul(&a, &b));
 }
 
+pub fn parallel_count(vector: Vec<TinValue>, elem: TinValue) -> TinValue {
+    return TinValue::INT(vector.into_par_iter().filter(|i| *i == elem).count() as i64);
+}
+
 pub fn parallel_max(vector: Vec<TinValue>) -> TinValue {
     return vector.into_par_iter().max_by(|a, b| {
         if wrappers::lt(&a, &b) == TinValue::INT(1){
