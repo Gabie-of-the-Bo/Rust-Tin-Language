@@ -381,16 +381,21 @@ fn tin_sum_all(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, 
     };
 }
 
-fn tin_mul_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_mul_all(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     match stack.pop().unwrap(){
         TinValue::VECTOR(v) => {
-            let mut res = TinValue::INT(1);
+            if intrp.parallel{
+                stack.push(parallelism::parallel_mul_all(v));
 
-            for i in v{
-                res = wrappers::mul(&res, &i);
+            } else{
+                let mut res = TinValue::INT(1);
+
+                for i in v{
+                    res = wrappers::mul(&res, &i);
+                }
+    
+                stack.push(res);
             }
-
-            stack.push(res);
         },
 
         _ => unreachable!()
@@ -407,38 +412,48 @@ fn tin_len(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     stack.push(res);
 }
 
-fn tin_max(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_max(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     match stack.pop().unwrap() {
         TinValue::VECTOR(v) => {
-            let mut v_it = v.iter();
-            let mut res = v_it.next().unwrap();
+            if intrp.parallel {
+                stack.push(parallelism::parallel_max(v));
 
-            for i in v_it{
-                if let TinValue::INT(1) = wrappers::gt(&i, &res){
-                    res = i;
+            } else{
+                let mut v_it = v.iter();
+                let mut res = v_it.next().unwrap();
+    
+                for i in v_it{
+                    if let TinValue::INT(1) = wrappers::gt(&i, &res){
+                        res = i;
+                    }
                 }
+    
+                stack.push(res.clone());
             }
-
-            stack.push(res.clone());
         }
 
         _ => unreachable!()
     };
 }
 
-fn tin_min(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_min(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     match stack.pop().unwrap() {
         TinValue::VECTOR(v) => {
-            let mut v_it = v.iter();
-            let mut res = v_it.next().unwrap();
+            if intrp.parallel {
+                stack.push(parallelism::parallel_min(v));
 
-            for i in v_it{
-                if let TinValue::INT(1) = wrappers::lt(&i, &res){
-                    res = i;
+            } else{
+                let mut v_it = v.iter();
+                let mut res = v_it.next().unwrap();
+    
+                for i in v_it{
+                    if let TinValue::INT(1) = wrappers::lt(&i, &res){
+                        res = i;
+                    }
                 }
+    
+                stack.push(res.clone());
             }
-
-            stack.push(res.clone());
         }
 
         _ => unreachable!()
@@ -501,42 +516,52 @@ fn tin_from_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToke
     };
 }
 
-fn tin_sort_asc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+fn tin_sort_asc(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
     match stack.last_mut().unwrap() {
         TinValue::VECTOR(v) => {
-            v.sort_by(|a, b| {
-                if wrappers::lt(&a, &b) == TinValue::INT(1){
-                    return std::cmp::Ordering::Less;
-                }
-
-                if a == b {
-                    return std::cmp::Ordering::Equal;
-                }
-
-                return std::cmp::Ordering::Greater;
-            });
+            if intrp.parallel{
+                parallelism::parallel_sort_asc(v);
+                
+            } else{
+                v.sort_by(|a, b| {
+                    if wrappers::lt(&a, &b) == TinValue::INT(1){
+                        return std::cmp::Ordering::Less;
+                    }
+    
+                    if a == b {
+                        return std::cmp::Ordering::Equal;
+                    }
+    
+                    return std::cmp::Ordering::Greater;
+                });
+            }
         }
 
         _ => unreachable!()
     };
 }
 
-fn tin_sort_idx_asc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+fn tin_sort_idx_asc(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
     match stack.last_mut().unwrap() {
         TinValue::VECTOR(v) => {
             let mut v_cpy = v.iter().enumerate().collect::<Vec<_>>();
             
-            v_cpy.sort_by(|a, b| {
-                if wrappers::lt(&a.1, &b.1) == TinValue::INT(1) {
-                    return std::cmp::Ordering::Less;
-                }
+            if intrp.parallel{
+                parallelism::parallel_sort_idx_asc(&mut v_cpy);
 
-                if a.1 == b.1 {
-                    return std::cmp::Ordering::Equal;
-                }
-
-                return std::cmp::Ordering::Greater;
-            });
+            } else{
+                v_cpy.sort_by(|a, b| {
+                    if wrappers::lt(&a.1, &b.1) == TinValue::INT(1) {
+                        return std::cmp::Ordering::Less;
+                    }
+    
+                    if a.1 == b.1 {
+                        return std::cmp::Ordering::Equal;
+                    }
+    
+                    return std::cmp::Ordering::Greater;
+                });   
+            }
 
             *v = v_cpy.iter().map(|t| TinValue::INT(t.0 as i64)).collect();
         }
@@ -545,42 +570,52 @@ fn tin_sort_idx_asc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinTo
     };
 }
 
-fn tin_sort_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+fn tin_sort_desc(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
     match stack.last_mut().unwrap() {
         TinValue::VECTOR(v) => {
-            v.sort_by(|a, b| {
-                if wrappers::gt(&a, &b) == TinValue::INT(1){
-                    return std::cmp::Ordering::Less;
-                }
-
-                if a == b {
-                    return std::cmp::Ordering::Equal;
-                }
-
-                return std::cmp::Ordering::Greater;
-            });
+            if intrp.parallel{
+                parallelism::parallel_sort_desc(v);
+                
+            } else{
+                v.sort_by(|a, b| {
+                    if wrappers::gt(&a, &b) == TinValue::INT(1){
+                        return std::cmp::Ordering::Less;
+                    }
+    
+                    if a == b {
+                        return std::cmp::Ordering::Equal;
+                    }
+    
+                    return std::cmp::Ordering::Greater;
+                });
+            }
         }
 
         _ => unreachable!()
     };
 }
 
-fn tin_sort_idx_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+fn tin_sort_idx_desc(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
     match stack.last_mut().unwrap() {
         TinValue::VECTOR(v) => {
             let mut v_cpy = v.iter().enumerate().collect::<Vec<_>>();
             
-            v_cpy.sort_by(|a, b| {
-                if wrappers::gt(&a.1, &b.1) == TinValue::INT(1) {
-                    return std::cmp::Ordering::Less;
-                }
+            if intrp.parallel{
+                parallelism::parallel_sort_idx_desc(&mut v_cpy);
 
-                if a.1 == b.1 {
-                    return std::cmp::Ordering::Equal;
-                }
-
-                return std::cmp::Ordering::Greater;
-            });
+            } else{
+                v_cpy.sort_by(|a, b| {
+                    if wrappers::gt(&a.1, &b.1) == TinValue::INT(1) {
+                        return std::cmp::Ordering::Less;
+                    }
+    
+                    if a.1 == b.1 {
+                        return std::cmp::Ordering::Equal;
+                    }
+    
+                    return std::cmp::Ordering::Greater;
+                });   
+            }
 
             *v = v_cpy.iter().map(|t| TinValue::INT(t.0 as i64)).collect();
         }
