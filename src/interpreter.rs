@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use regex::Regex;
 
 use crate::stdfuncs::std_tin_functions;
+use crate::parallelism;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TinValue {
@@ -147,5 +148,11 @@ impl TinInterpreter {
 
             ip += 1;
         }
+    }
+
+    pub fn parallelizable(&self, limit: usize) -> bool{
+        return self.parallel && 
+               *parallelism::CORES > 2 && 
+               limit >= 10000; // Experimental limit
     }
 }

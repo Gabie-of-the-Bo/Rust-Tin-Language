@@ -1,7 +1,12 @@
 use rayon::prelude::*;
+use num_cpus;
 
 use crate::interpreter::*;
 use crate::wrappers;
+
+lazy_static!{
+    pub static ref CORES: usize = num_cpus::get_physical();
+}
 
 pub fn parallel_sum_all(vector: Vec<TinValue>) -> TinValue {
     return vector.into_par_iter().reduce(|| TinValue::INT(0), |a, b| wrappers::sum(&a, &b));

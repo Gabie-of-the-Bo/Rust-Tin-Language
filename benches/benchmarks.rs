@@ -57,11 +57,12 @@ pub fn mode_benchmark(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
 
     let mut intrp = TinInterpreter::new();
+    intrp.parallel = false;
     let program = intrp.parse("→n(.n{.n↶#})!⌈º0↓.n↶↓←n");
 
     let mut group = c.benchmark_group("Mode");
 
-    for i in (50..1001).step_by(50) {
+    for i in (1000..10001).step_by(1000) {
         group.bench_with_input(BenchmarkId::from_parameter(i), &i, |b, &i| {
             b.iter(|| {
                 let mut v = vec!();
@@ -78,8 +79,5 @@ pub fn mode_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, naive_primality_benchmark,
-                          iterative_fibonacci_benchmark,
-                          recursive_fibonacci_benchmark,
-                          mode_benchmark);
+criterion_group!(benches, mode_benchmark);
 criterion_main!(benches);

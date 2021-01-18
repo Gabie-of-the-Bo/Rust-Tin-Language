@@ -10,6 +10,7 @@ edition = "2018"
 regex = "1"
 rand = "*"
 num_cpus = "*"
+lazy_static = "*"
 rayon = "*"
 
 [dev-dependencies]
