@@ -1,10 +1,14 @@
+use rayon::prelude::*;
+
 use crate::interpreter::{*};
+use crate::parallelism::parallelizable;
 
 pub fn floor(a: &TinValue) -> TinValue{
     return match a{
         TinValue::INT(n) => TinValue::INT(*n),
         TinValue::FLOAT(n) => TinValue::INT(n.floor() as i64),
-        TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(floor).collect()),
+        TinValue::VECTOR(v) => if parallelizable(v.len()) {TinValue::VECTOR(v.par_iter().map(floor).collect())}
+                                                     else {TinValue::VECTOR(v.iter().map(floor).collect())},
     }
 }
 
@@ -12,13 +16,15 @@ pub fn ceil(a: &TinValue) -> TinValue{
     return match a{
         TinValue::INT(n) => TinValue::INT(*n),
         TinValue::FLOAT(n) => TinValue::INT(n.ceil() as i64),
-        TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(ceil).collect()),
+        TinValue::VECTOR(v) => if parallelizable(v.len()) {TinValue::VECTOR(v.par_iter().map(ceil).collect())}
+                                                     else {TinValue::VECTOR(v.iter().map(ceil).collect())},
     }
 }
 
 pub fn truthy(a: &TinValue) -> TinValue{
     return match a{
-        TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(truthy).collect()),
+        TinValue::VECTOR(v) => if parallelizable(v.len()) {TinValue::VECTOR(v.par_iter().map(truthy).collect())}
+                                                     else {TinValue::VECTOR(v.iter().map(truthy).collect())},
 
         _ => TinValue::INT(a.truthy() as i64)
     }
@@ -26,7 +32,8 @@ pub fn truthy(a: &TinValue) -> TinValue{
 
 pub fn neg(a: &TinValue) -> TinValue{
     return match a{
-        TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(neg).collect()),
+        TinValue::VECTOR(v) => if parallelizable(v.len()) {TinValue::VECTOR(v.par_iter().map(neg).collect())}
+                                                     else {TinValue::VECTOR(v.iter().map(neg).collect())},
 
         _ => TinValue::INT((!a.truthy()) as i64)
     }
@@ -34,7 +41,8 @@ pub fn neg(a: &TinValue) -> TinValue{
 
 pub fn or(aa: &TinValue, bb: &TinValue) -> TinValue{
     return match (aa, bb) {
-        (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| or(t.0, t.1)).collect::<Vec<_>>()),
+        (TinValue::VECTOR(a), TinValue::VECTOR(b)) => if parallelizable(a.len()) {TinValue::VECTOR(a.par_iter().zip(b).map(|t| or(t.0, t.1)).collect::<Vec<_>>())}
+                                                                            else {TinValue::VECTOR(a.iter().zip(b).map(|t| or(t.0, t.1)).collect::<Vec<_>>())},
 
         _ => TinValue::INT((aa.truthy() || bb.truthy()) as i64)
     };
@@ -42,7 +50,8 @@ pub fn or(aa: &TinValue, bb: &TinValue) -> TinValue{
 
 pub fn and(aa: &TinValue, bb: &TinValue) -> TinValue{
     return match (aa, bb) {
-        (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| and(t.0, t.1)).collect::<Vec<_>>()),
+        (TinValue::VECTOR(a), TinValue::VECTOR(b)) => if parallelizable(a.len()) {TinValue::VECTOR(a.par_iter().zip(b).map(|t| and(t.0, t.1)).collect::<Vec<_>>())}
+                                                                            else {TinValue::VECTOR(a.iter().zip(b).map(|t| and(t.0, t.1)).collect::<Vec<_>>())},
 
         _ => TinValue::INT((aa.truthy() && bb.truthy()) as i64)
     };
@@ -188,6 +197,7 @@ pub fn sqrt(a: &TinValue) -> TinValue{
     return match a{
         TinValue::INT(n) => TinValue::FLOAT((*n as f64).sqrt()),
         TinValue::FLOAT(n) => TinValue::FLOAT(n.sqrt()),
-        TinValue::VECTOR(v) => TinValue::VECTOR(v.iter().map(sqrt).collect()),
+        TinValue::VECTOR(v) => if parallelizable(v.len()) {TinValue::VECTOR(v.par_iter().map(sqrt).collect())}
+                                                     else {TinValue::VECTOR(v.iter().map(sqrt).collect())},
     }
 }
