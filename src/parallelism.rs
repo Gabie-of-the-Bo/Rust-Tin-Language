@@ -6,7 +6,7 @@ use crate::interpreter::*;
 use crate::wrappers;
 
 thread_local!{
-    static PARALLEL: Cell<bool> = Cell::new(true);
+    static PARALLEL: Cell<bool> = Cell::new(cfg!(feature = "parallelism"));
 }
 
 lazy_static!{

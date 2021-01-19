@@ -64,11 +64,17 @@ pub fn lt(aa: &TinValue, bb: &TinValue) -> TinValue{
         (TinValue::FLOAT(a), TinValue::INT(b)) => TinValue::INT((*a < *b as f64) as i64),
         (TinValue::FLOAT(a), TinValue::FLOAT(b)) => TinValue::INT((a < b) as i64),
 
-        (TinValue::INT(_), TinValue::VECTOR(b)) => TinValue::VECTOR(b.iter().map(|v| lt(aa, v)).collect::<Vec<_>>()),
-        (TinValue::VECTOR(b), TinValue::INT(_)) => TinValue::VECTOR(b.iter().map(|v| lt(v, bb)).collect::<Vec<_>>()),
+        (TinValue::INT(_), TinValue::VECTOR(b)) => if parallelizable(b.len()) {TinValue::VECTOR(b.par_iter().map(|v| lt(aa, v)).collect::<Vec<_>>())}
+                                                                         else {TinValue::VECTOR(b.iter().map(|v| lt(aa, v)).collect::<Vec<_>>())},
 
-        (TinValue::FLOAT(_), TinValue::VECTOR(b)) => TinValue::VECTOR(b.iter().map(|v| lt(aa, v)).collect::<Vec<_>>()),
-        (TinValue::VECTOR(b), TinValue::FLOAT(_)) => TinValue::VECTOR(b.iter().map(|v| lt(v, bb)).collect::<Vec<_>>()),
+        (TinValue::VECTOR(b), TinValue::INT(_)) => if parallelizable(b.len()) {TinValue::VECTOR(b.par_iter().map(|v| lt(v, bb)).collect::<Vec<_>>())}
+                                                                         else {TinValue::VECTOR(b.iter().map(|v| lt(v, bb)).collect::<Vec<_>>())},
+
+        (TinValue::FLOAT(_), TinValue::VECTOR(b)) => if parallelizable(b.len()) {TinValue::VECTOR(b.par_iter().map(|v| lt(aa, v)).collect::<Vec<_>>())}
+                                                                           else {TinValue::VECTOR(b.iter().map(|v| lt(aa, v)).collect::<Vec<_>>())},
+
+        (TinValue::VECTOR(b), TinValue::FLOAT(_)) => if parallelizable(b.len()) {TinValue::VECTOR(b.par_iter().map(|v| lt(v, bb)).collect::<Vec<_>>())}
+                                                                           else {TinValue::VECTOR(b.iter().map(|v| lt(v, bb)).collect::<Vec<_>>())},
 
         (TinValue::VECTOR(a), TinValue::VECTOR(b)) => TinValue::VECTOR(a.iter().zip(b).map(|t| lt(t.0, t.1)).collect::<Vec<_>>()),
     };

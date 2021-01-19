@@ -15,7 +15,9 @@ before_script: |
 
 script:
   - cargo build --release
+  - cargo build --release --features parallelism
   - cargo test
+  - cargo test --features parallelism
 
 after_success: |
   cargo tarpaulin --out Xml
