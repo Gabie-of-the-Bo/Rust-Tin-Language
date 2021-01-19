@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::Cell;
 use rayon::prelude::*;
 use num_cpus;
 
@@ -6,7 +6,7 @@ use crate::interpreter::*;
 use crate::wrappers;
 
 thread_local!{
-    static PARALLEL: RefCell<bool> = RefCell::new(true);
+    static PARALLEL: Cell<bool> = Cell::new(true);
 }
 
 lazy_static!{
@@ -14,11 +14,11 @@ lazy_static!{
 }
 
 pub fn get_parallelization() -> bool{
-    return PARALLEL.with(|i| i.borrow().clone());
+    return PARALLEL.with(|i| i.get());
 }
 
 pub fn set_parallelization(value: bool) {
-    PARALLEL.with(|i| *i.borrow_mut() = value);
+    PARALLEL.with(|i| i.set(value));
 }
 
 pub fn parallelizable(limit: usize) -> bool{
