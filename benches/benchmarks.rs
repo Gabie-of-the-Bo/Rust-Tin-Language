@@ -57,7 +57,6 @@ pub fn mode_benchmark(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
 
     let mut intrp = TinInterpreter::new();
-    intrp.parallel = false;
     let program = intrp.parse("→n(.n{.n↶#})!⌈º0↓.n↶↓←n");
 
     let mut group = c.benchmark_group("Mode");

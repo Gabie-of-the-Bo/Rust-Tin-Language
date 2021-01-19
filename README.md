@@ -11,6 +11,7 @@ Tin features the following:
 * Complex mathematical functions (_Python's NumPy_ style).
 * Full unicode support for custom operations.
 * Compact flow control operations.
+* Automatic functionwise parallelization.
 * Regex-based function naming system to allow complex expressions.
 
 This language aims not to be specialized, so you can expect some intrincate statistics module or things like that to be developed, but they **will not** be part of the official standard function list. Feel free to open an issue if you think an specific function should be added to the standard list and it will be reviewed as an option if it is generic enough.

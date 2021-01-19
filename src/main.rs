@@ -2,13 +2,14 @@ use std::time::Instant;
 use rand::Rng;
 
 use tin::interpreter::*;
+use tin::parallelism;
 
 #[cfg(not(tarpaulin_include))]
 fn main(){
     let mut rng = rand::thread_rng();
 
     let mut intrp = TinInterpreter::new();
-    intrp.parallel = true;
+    parallelism::set_parallelization(true);
 
     let program_it = intrp.parse("→n(.n{.n↶#})!⌈º0↓.n↶↓←n");
 

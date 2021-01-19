@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use regex::Regex;
 
 use crate::stdfuncs::std_tin_functions;
-use crate::parallelism;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TinValue {
@@ -51,8 +50,6 @@ pub struct TinInterpreter {
     pub map_stack: Vec<(i64, Vec<TinValue>, usize, usize, Vec<TinValue>)>,
     pub parse_cache: HashMap<String, Vec<TinToken>>,
     pub functions_cache: HashMap<String, Vec<TinToken>>,
-
-    pub parallel: bool
 }
 
 impl TinInterpreter {
@@ -65,7 +62,6 @@ impl TinInterpreter {
             map_stack: vec!(),
             parse_cache: HashMap::new(),
             functions_cache: HashMap::new(),
-            parallel: true
         }
     }
 
@@ -148,11 +144,5 @@ impl TinInterpreter {
 
             ip += 1;
         }
-    }
-
-    pub fn parallelizable(&self, limit: usize) -> bool{
-        return self.parallel && 
-               *parallelism::CORES > 2 && 
-               limit >= 10000; // Experimental limit
     }
 }

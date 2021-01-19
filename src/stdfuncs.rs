@@ -276,10 +276,10 @@ fn tin_and(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     *stack.last_mut().unwrap() = wrappers::and(&a, &b);
 }
 
-fn tin_any(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_any(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     let res = match stack.pop().unwrap(){
         TinValue::VECTOR(v) => {
-            if intrp.parallelizable(v.len()){
+            if parallelism::parallelizable(v.len()){
                 parallelism::parallel_any(v)
 
             } else{
@@ -293,10 +293,10 @@ fn tin_any(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pro
     stack.push(res);
 }
 
-fn tin_none(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_none(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     let res = match stack.pop().unwrap(){
         TinValue::VECTOR(v) => {
-            if intrp.parallelizable(v.len()){
+            if parallelism::parallelizable(v.len()){
                 parallelism::parallel_none(v)
 
             } else{
@@ -310,10 +310,10 @@ fn tin_none(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     stack.push(res);
 }
 
-fn tin_all(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     let res = match stack.pop().unwrap(){
         TinValue::VECTOR(v) => {
-            if intrp.parallelizable(v.len()){
+            if parallelism::parallelizable(v.len()){
                 parallelism::parallel_all(v)
 
             } else{
@@ -381,10 +381,10 @@ fn get_nc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pro
     stack.push(res);
 }
 
-fn tin_sum_all(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_sum_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     match stack.pop().unwrap(){
         TinValue::VECTOR(v) => {
-            if intrp.parallelizable(v.len()){
+            if parallelism::parallelizable(v.len()){
                 stack.push(parallelism::parallel_sum_all(v));
 
             } else{
@@ -402,10 +402,10 @@ fn tin_sum_all(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, 
     };
 }
 
-fn tin_mul_all(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_mul_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     match stack.pop().unwrap(){
         TinValue::VECTOR(v) => {
-            if intrp.parallelizable(v.len()){
+            if parallelism::parallelizable(v.len()){
                 stack.push(parallelism::parallel_mul_all(v));
 
             } else{
@@ -433,10 +433,10 @@ fn tin_len(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     stack.push(res);
 }
 
-fn tin_max(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_max(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     match stack.pop().unwrap() {
         TinValue::VECTOR(v) => {
-            if intrp.parallelizable(v.len()) {
+            if parallelism::parallelizable(v.len()) {
                 stack.push(parallelism::parallel_max(v));
 
             } else{
@@ -457,10 +457,10 @@ fn tin_max(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pro
     };
 }
 
-fn tin_min(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+fn tin_min(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     match stack.pop().unwrap() {
         TinValue::VECTOR(v) => {
-            if intrp.parallelizable(v.len()) {
+            if parallelism::parallelizable(v.len()) {
                 stack.push(parallelism::parallel_min(v));
 
             } else{
@@ -537,10 +537,10 @@ fn tin_from_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToke
     };
 }
 
-fn tin_sort_asc(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+fn tin_sort_asc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
     match stack.last_mut().unwrap() {
         TinValue::VECTOR(v) => {
-            if intrp.parallelizable(v.len()){
+            if parallelism::parallelizable(v.len()){
                 parallelism::parallel_sort_asc(v);
                 
             } else{
@@ -562,12 +562,12 @@ fn tin_sort_asc(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>,
     };
 }
 
-fn tin_sort_idx_asc(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+fn tin_sort_idx_asc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
     match stack.last_mut().unwrap() {
         TinValue::VECTOR(v) => {
             let mut v_cpy = v.iter().enumerate().collect::<Vec<_>>();
             
-            if intrp.parallelizable(v.len()){
+            if parallelism::parallelizable(v.len()){
                 parallelism::parallel_sort_idx_asc(&mut v_cpy);
 
             } else{
@@ -591,10 +591,10 @@ fn tin_sort_idx_asc(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinTok
     };
 }
 
-fn tin_sort_desc(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+fn tin_sort_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
     match stack.last_mut().unwrap() {
         TinValue::VECTOR(v) => {
-            if intrp.parallelizable(v.len()){
+            if parallelism::parallelizable(v.len()){
                 parallelism::parallel_sort_desc(v);
                 
             } else{
@@ -616,12 +616,12 @@ fn tin_sort_desc(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>
     };
 }
 
-fn tin_sort_idx_desc(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+fn tin_sort_idx_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
     match stack.last_mut().unwrap() {
         TinValue::VECTOR(v) => {
             let mut v_cpy = v.iter().enumerate().collect::<Vec<_>>();
             
-            if intrp.parallelizable(v.len()){
+            if parallelism::parallelizable(v.len()){
                 parallelism::parallel_sort_idx_desc(&mut v_cpy);
 
             } else{

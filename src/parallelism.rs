@@ -1,11 +1,30 @@
+use std::cell::RefCell;
 use rayon::prelude::*;
 use num_cpus;
 
 use crate::interpreter::*;
 use crate::wrappers;
 
+thread_local!{
+    static PARALLEL: RefCell<bool> = RefCell::new(true);
+}
+
 lazy_static!{
     pub static ref CORES: usize = num_cpus::get_physical();
+}
+
+pub fn get_parallelization() -> bool{
+    return PARALLEL.with(|i| i.borrow().clone());
+}
+
+pub fn set_parallelization(value: bool) {
+    PARALLEL.with(|i| *i.borrow_mut() = value);
+}
+
+pub fn parallelizable(limit: usize) -> bool{
+    return get_parallelization() && 
+           *CORES > 2 && 
+           limit >= 10000; // Experimental limit
 }
 
 pub fn parallel_any(vector: Vec<TinValue>) -> TinValue {
