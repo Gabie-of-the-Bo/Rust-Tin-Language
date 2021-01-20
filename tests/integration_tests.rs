@@ -23,7 +23,7 @@ mod full_programs{
         let code = "→n.n√⊳ι``.n%∀1.n>∧←n";
         let program = intrp.parse(code);
 
-        for i in 0..1000{
+        for i in (0..1000).chain(10000..10100){
             let mut stack = vec!(TinValue::INT(i));
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = TinValue::INT(result(i));
@@ -51,7 +51,7 @@ mod full_programs{
         let code = "!ι⊳↶%𝔹¬∑";
         let program = intrp.parse(code);
 
-        for i in 0..100{
+        for i in (0..1000).chain(10000..10100){
             let mut stack = vec!(TinValue::INT(i));
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = TinValue::INT(result(i));
@@ -259,7 +259,7 @@ mod full_programs{
         let code = "!⍴↶∑/";
         let program = intrp.parse(code);
 
-        for _ in 0..100{
+        for _ in (0..100).chain(10000..10100){
             let mut v = vec!();
 
             for _ in 0..100{
@@ -307,7 +307,7 @@ mod full_programs{
         for _ in 0..100{
             let mut v = vec!();
 
-            for _ in 0..100{
+            for _ in (0..100).chain(10000..10100){
                 v.push(TinValue::INT(rng.gen_range(0..10)));
             }
 
@@ -355,7 +355,7 @@ mod full_programs{
         for _ in 0..100{
             let mut v = vec!();
 
-            for _ in 0..100{
+            for _ in (0..100).chain(10000..10010){
                 v.push(TinValue::INT(rng.gen_range(0..10)));
             }
 
@@ -417,7 +417,7 @@ mod full_programs{
         let code = "[{}]⌊";
         let program = intrp.parse(code);
 
-        for i in 1..20{
+        for i in 1..110{
             let two = TinValue::INT(2);
             let mut v = vec!();
 
@@ -493,9 +493,13 @@ mod equivalences{
     
     use tin::interpreter::*;
 
+    fn generate_vector(length: i64, max_size: i64) -> TinValue{
+        let mut rng = rand::thread_rng();
+        return TinValue::VECTOR((0..length).map(|_| TinValue::INT(rng.gen_range(0..max_size))).collect())
+    }
+
     #[test]
     fn all(){
-        let mut rng = rand::thread_rng();
         let mut intrp = TinInterpreter::new();
 
         let codes = vec!(
@@ -505,9 +509,9 @@ mod equivalences{
             "1→r 𝔹{.r∧→.r}.r ←r",
         ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
 
-        let gen = |i, l, s| (0..i).map(move |_| TinValue::VECTOR((0..l).map(|_| TinValue::INT(rng.gen_range(0..s))).collect()));
+        let gen = |i, l, s| (0..i).map(move |_| generate_vector(l, s));
 
-        for test_data in gen(1000, 10, 10){
+        for test_data in gen(1000, 10, 10).chain(gen(25, 10100, 10000)){
             let mut results = vec!();
 
             for code in &codes{
@@ -522,7 +526,6 @@ mod equivalences{
 
     #[test]
     fn some(){
-        let mut rng = rand::thread_rng();
         let mut intrp = TinInterpreter::new();
 
         let codes = vec!(
@@ -531,9 +534,9 @@ mod equivalences{
             "0↶𝔹{∨}",
         ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
 
-        let gen = |i, l, s| (0..i).map(move |_| TinValue::VECTOR((0..l).map(|_| TinValue::INT(rng.gen_range(0..s))).collect()));
+        let gen = |i, l, s| (0..i).map(move |_| generate_vector(l, s));
 
-        for test_data in gen(1000, 5, 2){
+        for test_data in gen(1000, 5, 2).chain(gen(25, 10100, 2)){
             let mut results = vec!();
 
             for code in &codes{
@@ -548,7 +551,6 @@ mod equivalences{
 
     #[test]
     fn none(){
-        let mut rng = rand::thread_rng();
         let mut intrp = TinInterpreter::new();
 
         let codes = vec!(
@@ -558,9 +560,9 @@ mod equivalences{
             "0↶𝔹{∨}¬",
         ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
 
-        let gen = |i, l, s| (0..i).map(move |_| TinValue::VECTOR((0..l).map(|_| TinValue::INT(rng.gen_range(0..s))).collect()));
+        let gen = |i, l, s| (0..i).map(move |_| generate_vector(l, s));
 
-        for test_data in gen(1000, 5, 2){
+        for test_data in gen(1000, 5, 2).chain(gen(25, 10100, 2)){
             let mut results = vec!();
 
             for code in &codes{
@@ -575,7 +577,6 @@ mod equivalences{
 
     #[test]
     fn from_index(){
-        let mut rng = rand::thread_rng();
         let mut intrp = TinInterpreter::new();
 
         let codes = vec!(
@@ -584,9 +585,9 @@ mod equivalences{
             "→i→v (.i{.v↶↓}) ←i←v"
         ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
 
-        let gen = |rng: &mut rand::rngs::ThreadRng| (0..1000).map(|_| TinValue::VECTOR((0..10).map(|_| TinValue::INT(rng.gen_range(0..10))).collect())).collect::<Vec<_>>();
+        let gen = || (0..1000).map(|_| generate_vector(10, 10));
 
-        for test_data in gen(&mut rng).iter().zip(gen(&mut rng)){
+        for test_data in gen().zip(gen()){
             let mut results = vec!();
 
             for code in &codes{
@@ -601,7 +602,6 @@ mod equivalences{
 
     #[test]
     fn sort_asc(){
-        let mut rng = rand::thread_rng();
         let mut intrp = TinInterpreter::new();
 
         let codes = vec!(
@@ -609,9 +609,9 @@ mod equivalences{
             "!.⇑@"
         ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
 
-        let gen = |i, l, s| (0..i).map(move |_| TinValue::VECTOR((0..l).map(|_| TinValue::INT(rng.gen_range(0..s))).collect()));
+        let gen = |i, l, s| (0..i).map(move |_| generate_vector(l, s));
 
-        for test_data in gen(1000, 100, 1000){
+        for test_data in gen(1000, 100, 1000).chain(gen(25, 10100, 10000)){
             let mut results = vec!();
 
             for code in &codes{
@@ -626,7 +626,6 @@ mod equivalences{
 
     #[test]
     fn sort_desc(){
-        let mut rng = rand::thread_rng();
         let mut intrp = TinInterpreter::new();
 
         let codes = vec!(
@@ -634,9 +633,9 @@ mod equivalences{
             "!.⇓@"
         ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
 
-        let gen = |i, l, s| (0..i).map(move |_| TinValue::VECTOR((0..l).map(|_| TinValue::INT(rng.gen_range(0..s))).collect()));
+        let gen = |i, l, s| (0..i).map(move |_| generate_vector(l, s));
 
-        for test_data in gen(1000, 100, 1000){
+        for test_data in gen(1000, 100, 1000).chain(gen(25, 10100, 10000)){
             let mut results = vec!();
 
             for code in &codes{
