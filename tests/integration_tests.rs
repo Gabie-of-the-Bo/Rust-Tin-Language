@@ -1,11 +1,25 @@
 #[cfg(test)]
+mod system_checks{
+    use tin::parallelism;
+
+    #[test]
+    fn parallelism_check(){
+        let msg = format!("Parallelism: {} (system with {} physical cores)", parallelism::get_parallelization(), *parallelism::CORES);
+
+        println!("\n+{}+", "-".repeat(msg.len() + 2));
+        println!("| {} |", msg);
+        println!("+{}+\n", "-".repeat(msg.len() + 2));
+    }
+}
+
+#[cfg(test)]
 mod full_programs{
     use std::collections::HashMap;
     use rand::Rng;
     
     use tin::interpreter::*;
     use tin::wrappers;
-    
+
     #[test]
     fn naive_primality_test(){
         fn result(n: i64) -> i64{
