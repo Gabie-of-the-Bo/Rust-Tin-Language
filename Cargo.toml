@@ -16,6 +16,7 @@ rayon = "*"
 [features]
 default = []
 parallelism = []
+no-core-check = []
 
 [dev-dependencies]
 criterion = "0.3"

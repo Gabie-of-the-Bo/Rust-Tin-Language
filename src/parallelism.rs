@@ -23,7 +23,7 @@ pub fn set_parallelization(value: bool) {
 
 pub fn parallelizable(limit: usize) -> bool{
     return get_parallelization() && 
-           *CORES > 2 && 
+           (if cfg!(feature = "no-core-check") { true } else { *CORES > 2 }) && 
            limit >= 10000; // Experimental limit
 }
 

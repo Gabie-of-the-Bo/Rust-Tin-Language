@@ -17,9 +17,9 @@ script:
   - cargo build --release
   - cargo build --release --features parallelism
   - cargo test
-  - cargo test system_checks --features parallelism -- --nocapture
-  - cargo test --features parallelism
+  - cargo test system_checks --features "parallelism no-core-check" -- --nocapture
+  - cargo test --features "parallelism no-core-check"
 
 after_success: |
-  cargo tarpaulin --features parallelism --out Xml
+  cargo tarpaulin --features "parallelism no-core-check" --out Xml
   bash <(curl -s https://codecov.io/bash)
