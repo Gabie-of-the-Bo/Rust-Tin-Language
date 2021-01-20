@@ -20,5 +20,5 @@ script:
   - cargo test --features parallelism
 
 after_success: |
-  cargo tarpaulin --out Xml
+  cargo tarpaulin --features parallelism --out Xml
   bash <(curl -s https://codecov.io/bash)
