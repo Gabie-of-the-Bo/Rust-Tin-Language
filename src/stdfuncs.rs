@@ -1,8 +1,9 @@
+use regex::Regex;
+use std::collections::{BTreeMap, BTreeSet};
+
 use crate::wrappers;
 use crate::interpreter::{*};
 use crate::parallelism;
-
-use regex::Regex;
 
 fn tin_drop(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     stack.pop();
@@ -501,6 +502,26 @@ fn tin_count(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _
     };
 }
 
+fn tin_nc_count(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+    let elem = stack.pop().unwrap();
+    
+    match stack.last().unwrap() {
+        TinValue::VECTOR(v) => {
+            let mut res = 0;
+
+            for i in v{
+                if *i == elem {
+                    res += 1;
+                }
+            }
+
+            stack.push(TinValue::INT(res));
+        }
+
+        _ => unreachable!()
+    };
+}
+
 fn tin_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     let elem = stack.pop().unwrap();
     
@@ -600,6 +621,32 @@ fn tin_sort_idx_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinT
 
             *v = v_cpy.iter().map(|t| TinValue::INT(t.0 as i64)).collect();
         }
+
+        _ => unreachable!()
+    };
+}
+
+fn tin_unique(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+    match stack.last_mut().unwrap() {
+        TinValue::VECTOR(v) => {
+            *v = v.iter().collect::<BTreeSet<_>>().iter().map(|i| (*i).clone()).collect();
+        },
+
+        _ => unreachable!()
+    };
+}
+
+fn tin_counts(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+    match stack.last_mut().unwrap() {
+        TinValue::VECTOR(v) => {
+            let mut counts = BTreeMap::new();
+
+            for i in v.iter() {
+                counts.entry(i).and_modify(|e| *e += 1).or_insert(1);
+            }
+
+            *v = v.iter().map(|i| TinValue::INT(*counts.get(i).unwrap() as i64)).collect();
+        },
 
         _ => unreachable!()
     };
@@ -723,13 +770,17 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"⌊", |s| TinToken::FN(s.to_string(), tin_min)),
 
         (r"#", |s| TinToken::FN(s.to_string(), tin_count)),
+        (r"\.#", |s| TinToken::FN(s.to_string(), tin_nc_count)),
         (r"º", |s| TinToken::FN(s.to_string(), tin_index)),
         (r"@", |s| TinToken::FN(s.to_string(), tin_from_index)),
         
         (r"⇑", |s| TinToken::FN(s.to_string(), tin_sort_asc)),
-        (r".⇑", |s| TinToken::FN(s.to_string(), tin_sort_idx_asc)),
+        (r"\.⇑", |s| TinToken::FN(s.to_string(), tin_sort_idx_asc)),
         (r"⇓", |s| TinToken::FN(s.to_string(), tin_sort_desc)),
-        (r".⇓", |s| TinToken::FN(s.to_string(), tin_sort_idx_desc)),
+        (r"\.⇓", |s| TinToken::FN(s.to_string(), tin_sort_idx_desc)),
+
+        (r"⊃", |s| TinToken::FN(s.to_string(), tin_unique)),
+        (r"⊂", |s| TinToken::FN(s.to_string(), tin_counts)),
 
         (r",", |s| TinToken::FN(s.to_string(), tin_append)),
 

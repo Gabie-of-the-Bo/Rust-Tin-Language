@@ -76,7 +76,6 @@ pub fn lt(aa: &TinValue, bb: &TinValue) -> TinValue{
         (TinValue::VECTOR(b), TinValue::FLOAT(_)) => if parallelizable(b.len()) {TinValue::VECTOR(b.par_iter().map(|v| lt(v, bb)).collect::<Vec<_>>())}
                                                                            else {TinValue::VECTOR(b.iter().map(|v| lt(v, bb)).collect::<Vec<_>>())},
 
-
         (TinValue::VECTOR(a), TinValue::VECTOR(b)) => if parallelizable(b.len()) {TinValue::VECTOR(a.par_iter().zip(b).map(|t| lt(t.0, t.1)).collect::<Vec<_>>())}
                                                                             else {TinValue::VECTOR(a.iter().zip(b).map(|t| lt(t.0, t.1)).collect::<Vec<_>>())},
     };

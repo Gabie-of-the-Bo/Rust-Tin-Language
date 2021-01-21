@@ -661,4 +661,30 @@ mod equivalences{
             assert!(results.windows(2).all(|w| w[0] == w[1]), "equality failed for input {}: {:?}", test_data.to_string(), results)
         }
     }
+
+    #[test]
+    fn counts(){
+        let mut intrp = TinInterpreter::new();
+
+        let codes = vec!(
+            "⊂",
+            "![.#]↶¡",
+            "!→n[.n↶#]←n",
+            "→n(.n{.n↶#})←n"
+        ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
+
+        let gen = |i, l, s| (0..i).map(move |_| generate_vector(l, s));
+
+        for test_data in gen(1000, 100, 10){
+            let mut results = vec!();
+
+            for code in &codes{
+                let mut stack = vec!(test_data.clone());
+                intrp.execute(&code, Option::None, &mut stack);
+                results.push(stack.pop().unwrap());
+            }
+
+            assert!(results.windows(2).all(|w| w[0] == w[1]), "equality failed for input {}: {:?}", test_data.to_string(), results)
+        }
+    }
 }
