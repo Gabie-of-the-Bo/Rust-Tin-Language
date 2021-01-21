@@ -1,3 +1,5 @@
+use std::option::Option;
+use std::cmp::*;
 use std::collections::HashMap;
 use regex::Regex;
 
@@ -13,6 +15,28 @@ pub enum TinValue {
 
 unsafe impl Send for TinValue {}
 unsafe impl Sync for TinValue {}
+
+impl std::cmp::PartialOrd for TinValue {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering>{
+        
+        return match (self, other) {
+            (TinValue::VECTOR(_), _) => Option::None,
+            (_, TinValue::VECTOR(_)) => Option::None,
+
+            _ => {
+                if crate::wrappers::lt(self, other) == TinValue::INT(1){
+                    Option::Some(Ordering::Less)
+
+                } else if self == other {
+                    Option::Some(Ordering::Equal)
+
+                } else {
+                    Option::Some(Ordering::Greater)
+                }
+            }   
+        }
+    }
+}
 
 impl TinValue{
     pub fn truthy(&self) -> bool{

@@ -544,17 +544,7 @@ fn tin_sort_asc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>
                 parallelism::parallel_sort_asc(v);
                 
             } else{
-                v.sort_by(|a, b| {
-                    if wrappers::lt(&a, &b) == TinValue::INT(1){
-                        return std::cmp::Ordering::Less;
-                    }
-    
-                    if a == b {
-                        return std::cmp::Ordering::Equal;
-                    }
-    
-                    return std::cmp::Ordering::Greater;
-                });
+                v.sort_by(|a, b| a.partial_cmp(b).unwrap());
             }
         }
 
@@ -571,17 +561,7 @@ fn tin_sort_idx_asc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinTo
                 parallelism::parallel_sort_idx_asc(&mut v_cpy);
 
             } else{
-                v_cpy.sort_by(|a, b| {
-                    if wrappers::lt(&a.1, &b.1) == TinValue::INT(1) {
-                        return std::cmp::Ordering::Less;
-                    }
-    
-                    if a.1 == b.1 {
-                        return std::cmp::Ordering::Equal;
-                    }
-    
-                    return std::cmp::Ordering::Greater;
-                });   
+                v_cpy.sort_by(|a, b| a.1.partial_cmp(b.1).unwrap()); 
             }
 
             *v = v_cpy.iter().map(|t| TinValue::INT(t.0 as i64)).collect();
@@ -598,17 +578,7 @@ fn tin_sort_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken
                 parallelism::parallel_sort_desc(v);
                 
             } else{
-                v.sort_by(|a, b| {
-                    if wrappers::gt(&a, &b) == TinValue::INT(1){
-                        return std::cmp::Ordering::Less;
-                    }
-    
-                    if a == b {
-                        return std::cmp::Ordering::Equal;
-                    }
-    
-                    return std::cmp::Ordering::Greater;
-                });
+                v.sort_by(|a, b| b.partial_cmp(a).unwrap()); 
             }
         }
 
@@ -625,17 +595,7 @@ fn tin_sort_idx_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinT
                 parallelism::parallel_sort_idx_desc(&mut v_cpy);
 
             } else{
-                v_cpy.sort_by(|a, b| {
-                    if wrappers::gt(&a.1, &b.1) == TinValue::INT(1) {
-                        return std::cmp::Ordering::Less;
-                    }
-    
-                    if a.1 == b.1 {
-                        return std::cmp::Ordering::Equal;
-                    }
-    
-                    return std::cmp::Ordering::Greater;
-                });   
+                v_cpy.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap()); 
             }
 
             *v = v_cpy.iter().map(|t| TinValue::INT(t.0 as i64)).collect();

@@ -48,87 +48,25 @@ pub fn parallel_mul_all(vector: Vec<TinValue>) -> TinValue {
 }
 
 pub fn parallel_max(vector: Vec<TinValue>) -> TinValue {
-    return vector.into_par_iter().max_by(|a, b| {
-        if wrappers::lt(&a, &b) == TinValue::INT(1){
-            return std::cmp::Ordering::Less;
-        }
-
-        if a == b {
-            return std::cmp::Ordering::Equal;
-        }
-
-        return std::cmp::Ordering::Greater;
-        
-    }).unwrap();
+    return vector.into_par_iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
 }
 
 pub fn parallel_min(vector: Vec<TinValue>) -> TinValue {
-    return vector.into_par_iter().min_by(|a, b| {
-        if wrappers::lt(&a, &b) == TinValue::INT(1){
-            return std::cmp::Ordering::Less;
-        }
-
-        if a == b {
-            return std::cmp::Ordering::Equal;
-        }
-
-        return std::cmp::Ordering::Greater;
-        
-    }).unwrap();
+    return vector.into_par_iter().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
 }
 
 pub fn parallel_sort_asc(vector: &mut Vec<TinValue>){
-    vector.par_sort_by(|a, b| {
-        if wrappers::lt(&a, &b) == TinValue::INT(1){
-            return std::cmp::Ordering::Less;
-        }
-
-        if a == b {
-            return std::cmp::Ordering::Equal;
-        }
-
-        return std::cmp::Ordering::Greater;
-    });
+    vector.par_sort_by(|a, b| a.partial_cmp(b).unwrap());
 }
 
 pub fn parallel_sort_idx_asc(vector: &mut Vec<(usize, &TinValue)>) {
-    vector.par_sort_by(|a, b| {
-        if wrappers::lt(&a.1, &b.1) == TinValue::INT(1){
-            return std::cmp::Ordering::Less;
-        }
-
-        if a.1 == b.1 {
-            return std::cmp::Ordering::Equal;
-        }
-
-        return std::cmp::Ordering::Greater;
-    });
+    vector.par_sort_by(|a, b| a.1.partial_cmp(b.1).unwrap());
 }
 
 pub fn parallel_sort_desc(vector: &mut Vec<TinValue>) {
-    vector.par_sort_by(|a, b| {
-        if wrappers::gt(&a, &b) == TinValue::INT(1){
-            return std::cmp::Ordering::Less;
-        }
-
-        if a == b {
-            return std::cmp::Ordering::Equal;
-        }
-
-        return std::cmp::Ordering::Greater;
-    });
+    vector.par_sort_by(|a, b| b.partial_cmp(a).unwrap());
 }
 
 pub fn parallel_sort_idx_desc(vector: &mut Vec<(usize, &TinValue)>) {
-    vector.par_sort_by(|a, b| {
-        if wrappers::gt(&a.1, &b.1) == TinValue::INT(1){
-            return std::cmp::Ordering::Less;
-        }
-
-        if a.1 == b.1 {
-            return std::cmp::Ordering::Equal;
-        }
-
-        return std::cmp::Ordering::Greater;
-    });
+    vector.par_sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
 }
