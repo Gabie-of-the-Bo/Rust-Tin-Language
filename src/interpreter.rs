@@ -16,6 +16,8 @@ pub enum TinValue {
 unsafe impl Send for TinValue {}
 unsafe impl Sync for TinValue {}
 
+impl Eq for TinValue {}
+
 impl std::cmp::PartialOrd for TinValue {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering>{
         
@@ -35,6 +37,12 @@ impl std::cmp::PartialOrd for TinValue {
                 }
             }   
         }
+    }
+}
+
+impl std::cmp::Ord for TinValue {
+    fn cmp(&self, other: &Self) -> Ordering{
+        return self.partial_cmp(other).unwrap();
     }
 }
 
