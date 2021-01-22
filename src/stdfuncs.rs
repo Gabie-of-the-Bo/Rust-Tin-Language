@@ -792,7 +792,7 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"#", |s| TinToken::Fn(s.to_string(), tin_count)),
         (r"\*#", |s| TinToken::Fn(s.to_string(), tin_nc_count)),
         (r"º", |s| TinToken::Fn(s.to_string(), tin_index)),
-        (r"\*º", |s| TinToken::Fn(s.to_string(), tin_index)),
+        (r"\*º", |s| TinToken::Fn(s.to_string(), tin_nc_index)),
         (r"@", |s| TinToken::Fn(s.to_string(), tin_from_index)),
         
         (r"⇑", |s| TinToken::Fn(s.to_string(), tin_sort_asc)),
