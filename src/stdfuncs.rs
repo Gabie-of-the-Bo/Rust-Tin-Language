@@ -672,6 +672,17 @@ fn tin_counts(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, 
     };
 }
 
+fn tin_merge(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
+    let mut v1 = stack.pop().unwrap();
+    let mut v2 = stack.last_mut().unwrap();
+
+    match (&mut v1, &mut v2) {
+        (TinValue::Vector(a), TinValue::Vector(b)) => b.append(a),
+
+        _ => unreachable!()
+    };
+}
+
 fn tin_append(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){    
     let elem = stack.pop().unwrap();
 
@@ -804,6 +815,7 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"⊂", |s| TinToken::Fn(s.to_string(), tin_counts)),
 
         (r",", |s| TinToken::Fn(s.to_string(), tin_append)),
+        (r"_", |s| TinToken::Fn(s.to_string(), tin_merge)),
 
         // Functional array manipulation
         (r"`", |s| TinToken::Fn(s.to_string(), drop_first)),
