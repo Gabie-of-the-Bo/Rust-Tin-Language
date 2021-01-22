@@ -542,6 +542,26 @@ fn tin_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _
     };
 }
 
+fn tin_nc_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+    let elem = stack.pop().unwrap();
+    
+    match stack.last().unwrap() {
+        TinValue::Vector(v) => {
+            let mut res = vec!();
+
+            for (idx, i) in v.iter().enumerate(){
+                if *i == elem {
+                    res.push(TinValue::Int(idx as i64));
+                }
+            }
+
+            stack.push(TinValue::Vector(res));
+        }
+
+        _ => unreachable!()
+    };
+}
+
 fn tin_from_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
     let mut idx_vec = stack.pop().unwrap();
     let mut ref_vec = stack.last_mut().unwrap();
@@ -758,7 +778,7 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"ι", |s| TinToken::Fn(s.to_string(), iota)),
         (r"□", |s| TinToken::Fn(s.to_string(), boxed)),
         (r"↓", |s| TinToken::Fn(s.to_string(), get)),
-        (r"\*", |s| TinToken::Fn(s.to_string(), get_nc)),
+        (r"\*↓", |s| TinToken::Fn(s.to_string(), get_nc)),
         (r"↑", |s| TinToken::Fn(s.to_string(), set)),
 
         (r"∑", |s| TinToken::Fn(s.to_string(), tin_sum_all)),
@@ -770,8 +790,9 @@ pub fn std_tin_functions() -> Vec<(Regex, fn(&str) -> TinToken)>{
         (r"⌊", |s| TinToken::Fn(s.to_string(), tin_min)),
 
         (r"#", |s| TinToken::Fn(s.to_string(), tin_count)),
-        (r"\.#", |s| TinToken::Fn(s.to_string(), tin_nc_count)),
+        (r"\*#", |s| TinToken::Fn(s.to_string(), tin_nc_count)),
         (r"º", |s| TinToken::Fn(s.to_string(), tin_index)),
+        (r"\*º", |s| TinToken::Fn(s.to_string(), tin_index)),
         (r"@", |s| TinToken::Fn(s.to_string(), tin_from_index)),
         
         (r"⇑", |s| TinToken::Fn(s.to_string(), tin_sort_asc)),

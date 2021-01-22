@@ -595,7 +595,7 @@ mod equivalences{
 
         let codes = vec!(
             "@",
-            "[*]↶¡",
+            "[*↓]↶¡",
             "→i→v (.i{.v↶↓}) ←i←v"
         ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
 
@@ -668,7 +668,7 @@ mod equivalences{
 
         let codes = vec!(
             "⊂",
-            "![.#]↶¡",
+            "![*#]↶¡",
             "!→n[.n↶#]←n",
             "→n(.n{.n↶#})←n"
         ).iter().map(|i| intrp.parse(i)).collect::<Vec<_>>(); 
