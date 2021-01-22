@@ -11,7 +11,7 @@ pub fn naive_primality_benchmark(c: &mut Criterion) {
     for i in (0..10001).step_by(1000) {
         group.bench_with_input(BenchmarkId::from_parameter(i), &i, |b, &i| {
             b.iter(|| {
-                let mut stack = vec!(TinValue::INT(black_box(i)));
+                let mut stack = vec!(TinValue::Int(black_box(i)));
                 intrp.execute(&program, Option::None, &mut stack);
             });
         });
@@ -28,7 +28,7 @@ pub fn iterative_fibonacci_benchmark(c: &mut Criterion) {
     for i in (0..51).step_by(2) {
         group.bench_with_input(BenchmarkId::from_parameter(i), &i, |b, &i| {
             b.iter(|| {
-                let mut stack = vec!(TinValue::INT(black_box(i)));
+                let mut stack = vec!(TinValue::Int(black_box(i)));
                 intrp.execute(&program, Option::None, &mut stack);
             });
         });
@@ -45,7 +45,7 @@ pub fn recursive_fibonacci_benchmark(c: &mut Criterion) {
     for i in (0..26).step_by(2) {
         group.bench_with_input(BenchmarkId::from_parameter(i), &i, |b, &i| {
             b.iter(|| {
-                let mut stack = vec!(TinValue::INT(black_box(i)));
+                let mut stack = vec!(TinValue::Int(black_box(i)));
                 intrp.execute(&program, Option::None, &mut stack);
             });
         });
@@ -67,10 +67,10 @@ pub fn mode_benchmark(c: &mut Criterion) {
                 let mut v = vec!();
 
                 for _ in 0..i{
-                    v.push(TinValue::INT(rng.gen_range(0..10)));
+                    v.push(TinValue::Int(rng.gen_range(0..10)));
                 }
 
-                let mut stack = vec!(black_box(TinValue::VECTOR(v)));
+                let mut stack = vec!(black_box(TinValue::Vector(v)));
                 intrp.execute(&program, Option::None, &mut stack);
             });
         });

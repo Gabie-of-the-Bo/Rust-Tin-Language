@@ -7,10 +7,10 @@ use crate::stdfuncs::std_tin_functions;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TinValue {
-    INT(i64),
-    FLOAT(f64),
+    Int(i64),
+    Float(f64),
 
-    VECTOR(Vec<TinValue>)
+    Vector(Vec<TinValue>)
 }
 
 unsafe impl Send for TinValue {}
@@ -22,11 +22,11 @@ impl std::cmp::PartialOrd for TinValue {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering>{
         
         return match (self, other) {
-            (TinValue::VECTOR(_), _) => Option::None,
-            (_, TinValue::VECTOR(_)) => Option::None,
+            (TinValue::Vector(_), _) => Option::None,
+            (_, TinValue::Vector(_)) => Option::None,
 
             _ => {
-                if crate::wrappers::lt(self, other) == TinValue::INT(1){
+                if crate::wrappers::lt(self, other) == TinValue::Int(1){
                     Option::Some(Ordering::Less)
 
                 } else if self == other {
@@ -49,28 +49,28 @@ impl std::cmp::Ord for TinValue {
 impl TinValue{
     pub fn truthy(&self) -> bool{
         return match self{
-            TinValue::INT(n) => *n != 0,
-            TinValue::FLOAT(n) => *n != 0.0,
-            TinValue::VECTOR(v) => v.len() != 0,
+            TinValue::Int(n) => *n != 0,
+            TinValue::Float(n) => *n != 0.0,
+            TinValue::Vector(v) => v.len() != 0,
         };
     }
 
     pub fn to_string(&self) -> String{
         return match self{
-            TinValue::INT(n) => n.to_string(),
-            TinValue::FLOAT(n) => format!("{:.5}", n),
-            TinValue::VECTOR(v) => format!("[{}]", v.iter().map(TinValue::to_string).collect::<Vec<_>>().join(", "))
+            TinValue::Int(n) => n.to_string(),
+            TinValue::Float(n) => format!("{:.5}", n),
+            TinValue::Vector(v) => format!("[{}]", v.iter().map(TinValue::to_string).collect::<Vec<_>>().join(", "))
         }
     }
 }
 
 #[derive(Clone)]
 pub enum TinToken {
-    INT(i64),
-    FLOAT(f64),
+    Int(i64),
+    Float(f64),
 
-    FN(String, fn(String, &mut TinInterpreter, &Vec<TinToken>, Option<&Vec<TinToken>>, &mut i64, &mut Vec<TinValue>) -> ()),
-    DEF(String)
+    Fn(String, fn(String, &mut TinInterpreter, &Vec<TinToken>, Option<&Vec<TinToken>>, &mut i64, &mut Vec<TinValue>) -> ()),
+    Def(String)
 }
 
 pub struct TinInterpreter {
@@ -133,7 +133,7 @@ impl TinInterpreter {
                 let opt_i = opt.unwrap();
 
                 match opt_i.0.clone(){
-                    TinToken::DEF(s) => {
+                    TinToken::Def(s) => {
                         fn exec_func(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
                             let prg = intrp.functions_cache.get(tok.as_str()).cloned().unwrap();
                             intrp.execute(&prg, prog_parent, stack);
@@ -145,7 +145,7 @@ impl TinInterpreter {
     
                         self.functions_cache.entry(func_name.to_string()).or_insert(func_code);
     
-                        self.token_list.push((Regex::new(func_name).unwrap(), |s| TinToken::FN(s.to_string(), exec_func)));
+                        self.token_list.push((Regex::new(func_name).unwrap(), |s| TinToken::Fn(s.to_string(), exec_func)));
                     }
 
                     _ => {}
@@ -168,9 +168,9 @@ impl TinInterpreter {
             let token = &program[ip as usize];
 
             match token{
-                TinToken::INT(n) => stack.push(TinValue::INT(*n)),
-                TinToken::FLOAT(n) => stack.push(TinValue::FLOAT(*n)),
-                TinToken::FN(s, f) => f(s.to_string(), self, program, parent, &mut ip, stack),
+                TinToken::Int(n) => stack.push(TinValue::Int(*n)),
+                TinToken::Float(n) => stack.push(TinValue::Float(*n)),
+                TinToken::Fn(s, f) => f(s.to_string(), self, program, parent, &mut ip, stack),
                 _ => {}
             };
 

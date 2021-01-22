@@ -38,9 +38,9 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in (0..1000).chain(10000..10100){
-            let mut stack = vec!(TinValue::INT(i));
+            let mut stack = vec!(TinValue::Int(i));
             intrp.execute(&program, Option::None, &mut stack);
-            let correct_res = TinValue::INT(result(i));
+            let correct_res = TinValue::Int(result(i));
 
             if *stack.last().unwrap() != correct_res {
                 panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
@@ -66,9 +66,9 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in (0..1000).chain(10000..10100){
-            let mut stack = vec!(TinValue::INT(i));
+            let mut stack = vec!(TinValue::Int(i));
             intrp.execute(&program, Option::None, &mut stack);
-            let correct_res = TinValue::INT(result(i));
+            let correct_res = TinValue::Int(result(i));
 
             if *stack.last().unwrap() != correct_res {
                 panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
@@ -91,9 +91,9 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in 0..20{
-            let mut stack = vec!(TinValue::INT(i));
+            let mut stack = vec!(TinValue::Int(i));
             intrp.execute(&program, Option::None, &mut stack);
-            let correct_res = TinValue::INT(result(i));
+            let correct_res = TinValue::Int(result(i));
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
                         "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
@@ -119,12 +119,12 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in 2..20{
-            let mut stack = vec!(TinValue::INT(i));
+            let mut stack = vec!(TinValue::Int(i));
             intrp.execute(&program, Option::None, &mut stack);
-            let correct_res = TinValue::FLOAT(result(i));
+            let correct_res = TinValue::Float(result(i));
 
             match (stack.last().unwrap(), &correct_res){
-                (TinValue::FLOAT(a), TinValue::FLOAT(b)) => {
+                (TinValue::Float(a), TinValue::Float(b)) => {
                     assert!((a - b).abs() < 0.001, "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
                 },
 
@@ -148,9 +148,9 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in 0..20{
-            let mut stack = vec!(TinValue::INT(i));
+            let mut stack = vec!(TinValue::Int(i));
             intrp.execute(&program, Option::None, &mut stack);
-            let correct_res = TinValue::INT(result(i));
+            let correct_res = TinValue::Int(result(i));
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
                         "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
@@ -180,9 +180,9 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in 0..20{
-            let mut stack = vec!(TinValue::INT(i));
+            let mut stack = vec!(TinValue::Int(i));
             intrp.execute(&program, Option::None, &mut stack);
-            let correct_res = TinValue::INT(result(i));
+            let correct_res = TinValue::Int(result(i));
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
                         "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
@@ -212,9 +212,9 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in 0..45{
-            let mut stack = vec!(TinValue::INT(i));
+            let mut stack = vec!(TinValue::Int(i));
             intrp.execute(&program, Option::None, &mut stack);
-            let correct_res = TinValue::INT(result(i));
+            let correct_res = TinValue::Int(result(i));
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
                         "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
@@ -244,9 +244,9 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in 0..45{
-            let mut stack = vec!(TinValue::INT(i));
+            let mut stack = vec!(TinValue::Int(i));
             intrp.execute(&program, Option::None, &mut stack);
-            let correct_res = TinValue::INT(result(i));
+            let correct_res = TinValue::Int(result(i));
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
                         "Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
@@ -256,8 +256,8 @@ mod full_programs{
     #[test]
     fn mean(){
         fn result(v: Vec<TinValue>) -> TinValue{
-            let mut res = TinValue::INT(0);
-            let count = TinValue::INT(v.len() as i64);
+            let mut res = TinValue::Int(0);
+            let count = TinValue::Int(v.len() as i64);
 
             for i in v{
                 res = wrappers::sum(&res, &i);
@@ -277,30 +277,30 @@ mod full_programs{
             let mut v = vec!();
 
             for _ in 0..100{
-                v.push(TinValue::INT(rng.gen_range(0..10)));
+                v.push(TinValue::Int(rng.gen_range(0..10)));
             }
 
-            let mut stack = vec!(TinValue::VECTOR(v.clone()));
+            let mut stack = vec!(TinValue::Vector(v.clone()));
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = result(v.clone());
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
-                        "Invalid output for input {}: {} != {}", TinValue::VECTOR(v).to_string(), stack.last().unwrap().to_string(), correct_res.to_string());
+                        "Invalid output for input {}: {} != {}", TinValue::Vector(v).to_string(), stack.last().unwrap().to_string(), correct_res.to_string());
         }
     }
 
     #[test]
     fn variance(){
         fn result(v: Vec<TinValue>) -> TinValue{
-            let mut res = TinValue::INT(0);
-            let count = TinValue::INT(v.len() as i64);
+            let mut res = TinValue::Int(0);
+            let count = TinValue::Int(v.len() as i64);
 
             for i in &v{
                 res = wrappers::sum(&res, &i);
             }
 
             let mean = wrappers::div(&res, &count);
-            res = TinValue::INT(0);
+            res = TinValue::Int(0);
 
             for i in &v{
                 let mut factor = wrappers::sub(&i, &mean);
@@ -322,15 +322,15 @@ mod full_programs{
             let mut v = vec!();
 
             for _ in (0..100).chain(10000..10100){
-                v.push(TinValue::INT(rng.gen_range(0..10)));
+                v.push(TinValue::Int(rng.gen_range(0..10)));
             }
 
-            let mut stack = vec!(TinValue::VECTOR(v.clone()));
+            let mut stack = vec!(TinValue::Vector(v.clone()));
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = result(v.clone());
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
-                        "Invalid output for input {}: {} != {}", TinValue::VECTOR(v).to_string(), stack.last().unwrap().to_string(), correct_res.to_string());
+                        "Invalid output for input {}: {} != {}", TinValue::Vector(v).to_string(), stack.last().unwrap().to_string(), correct_res.to_string());
         }
     }
 
@@ -340,7 +340,7 @@ mod full_programs{
             let mut counts = HashMap::new();
 
             for i in &v {
-                if let TinValue::INT(j) = i {
+                if let TinValue::Int(j) = i {
                     counts.entry(j).or_insert(0);
                     *counts.get_mut(&j).unwrap() += 1;
                 }
@@ -349,14 +349,14 @@ mod full_programs{
             let max_count = *counts.iter().max_by_key(|t| t.1).unwrap().1;
 
             for i in &v {
-                if let TinValue::INT(j) = i{
+                if let TinValue::Int(j) = i{
                     if *counts.get(&j).unwrap() == max_count {
                         return i.clone();
                     }
                 }
             }
 
-            return TinValue::INT(0);
+            return TinValue::Int(0);
         }
 
         let mut rng = rand::thread_rng();
@@ -370,22 +370,22 @@ mod full_programs{
             let mut v = vec!();
 
             for _ in (0..100).chain(10000..10010){
-                v.push(TinValue::INT(rng.gen_range(0..10)));
+                v.push(TinValue::Int(rng.gen_range(0..10)));
             }
 
-            let mut stack = vec!(TinValue::VECTOR(v.clone()));
+            let mut stack = vec!(TinValue::Vector(v.clone()));
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = result(v.clone());
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
-                        "Invalid output for input {}: {} != {}", TinValue::VECTOR(v).to_string(), stack.last().unwrap().to_string(), correct_res.to_string());
+                        "Invalid output for input {}: {} != {}", TinValue::Vector(v).to_string(), stack.last().unwrap().to_string(), correct_res.to_string());
         }
     }
 
     #[test]
     fn zero_vector_generation(){
         fn result(n: i64) -> TinValue{
-            return TinValue::VECTOR(vec!(TinValue::INT(0); n as usize));
+            return TinValue::Vector(vec!(TinValue::Int(0); n as usize));
         }
 
         let mut intrp = TinInterpreter::new();
@@ -394,7 +394,7 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in 1..20{
-            let mut stack = vec!(TinValue::INT(i));
+            let mut stack = vec!(TinValue::Int(i));
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = result(i);
 
@@ -409,12 +409,12 @@ mod full_programs{
             let mut res = Option::None;
 
             for i in v{
-                if let TinValue::VECTOR(vv) = i {
+                if let TinValue::Vector(vv) = i {
                     for j in vv{
                         if res.is_none() {
                             res = Some(j);
                         
-                        } else if let TinValue::INT(1) = wrappers::lt(&j, res.as_ref().unwrap()){
+                        } else if let TinValue::Int(1) = wrappers::lt(&j, res.as_ref().unwrap()){
                             res = Some(j);
                         }
                     }
@@ -432,22 +432,22 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in 1..110{
-            let two = TinValue::INT(2);
+            let two = TinValue::Int(2);
             let mut v = vec!();
 
             for _ in 0..i{
                 let mut row = vec!();
 
                 for _ in 0..i{
-                    let elem = TinValue::INT(rng.gen_range(0..1000000));
+                    let elem = TinValue::Int(rng.gen_range(0..1000000));
                     row.push(wrappers::div(&elem, &two));
                 }
 
-                v.push(TinValue::VECTOR(row));
+                v.push(TinValue::Vector(row));
             }
 
 
-            let mut stack = vec!(TinValue::VECTOR(v.clone()));
+            let mut stack = vec!(TinValue::Vector(v.clone()));
             println!("{}", stack.last().unwrap().to_string());
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = result(v);
@@ -463,13 +463,13 @@ mod full_programs{
             let mut v = vec!();
 
             for i in 0..n {
-                let mut row = vec!(TinValue::INT(0); n as usize);
-                row[i as usize] = TinValue::INT(1);
+                let mut row = vec!(TinValue::Int(0); n as usize);
+                row[i as usize] = TinValue::Int(1);
 
-                v.push(TinValue::VECTOR(row));
+                v.push(TinValue::Vector(row));
             }
 
-            return TinValue::VECTOR(v);
+            return TinValue::Vector(v);
         }
 
         let mut intrp = TinInterpreter::new();
@@ -478,7 +478,7 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in 1..20{
-            let mut stack = vec!(TinValue::INT(i));
+            let mut stack = vec!(TinValue::Int(i));
             intrp.execute(&program, Option::None, &mut stack);
             let correct_res = result(i);
 
@@ -495,7 +495,7 @@ mod full_programs{
         let program = intrp.parse(code);
 
         for i in 1..100{
-            let mut stack = vec!(TinValue::INT(i));
+            let mut stack = vec!(TinValue::Int(i));
             intrp.execute(&program, Option::None, &mut stack); // This only has to execute in order to be correct
         }
     }
@@ -509,7 +509,7 @@ mod equivalences{
 
     fn generate_vector(length: i64, max_size: i64) -> TinValue{
         let mut rng = rand::thread_rng();
-        return TinValue::VECTOR((0..length).map(|_| TinValue::INT(rng.gen_range(0..max_size))).collect())
+        return TinValue::Vector((0..length).map(|_| TinValue::Int(rng.gen_range(0..max_size))).collect())
     }
 
     #[test]
