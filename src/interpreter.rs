@@ -1,3 +1,4 @@
+use std::fmt::format;
 use std::option::Option;
 use std::cmp::*;
 use std::collections::HashMap;
@@ -69,7 +70,7 @@ pub enum TinToken {
     Int(i64),
     Float(f64),
 
-    Fn(String, fn(String, &mut TinInterpreter, &Vec<TinToken>, Option<&Vec<TinToken>>, &mut i64, &mut Vec<TinValue>) -> ()),
+    Fn(String, fn(String, &mut TinInterpreter, &Vec<TinToken>, Option<&Vec<TinToken>>, &mut i64, &mut Vec<TinValue>) -> Result<(), String>),
     Def(String)
 }
 
@@ -82,6 +83,8 @@ pub struct TinInterpreter {
     pub map_stack: Vec<(i64, Vec<TinValue>, usize, usize, Vec<TinValue>)>,
     pub parse_cache: HashMap<String, Vec<TinToken>>,
     pub functions_cache: HashMap<String, Vec<TinToken>>,
+
+    pub output: String
 }
 
 impl TinInterpreter {
@@ -94,15 +97,16 @@ impl TinInterpreter {
             map_stack: vec!(),
             parse_cache: HashMap::new(),
             functions_cache: HashMap::new(),
+            output: String::new()
         }
     }
 
-    pub fn parse(&mut self, code_original: &str) -> Vec<TinToken>{
+    pub fn parse(&mut self, code_original: &str) -> Result<Vec<TinToken>, String> {
         let mut code = code_original;
         let mut res = vec!();
         
         if self.parse_cache.contains_key(code){
-            return self.parse_cache.get(code).cloned().unwrap();
+            return Ok(self.parse_cache.get(code).cloned().unwrap());
         }
 
         while code.len() > 0 {
@@ -127,20 +131,20 @@ impl TinInterpreter {
             }
 
             if opt.is_none() {
-                panic!(format!("Invalid Tin code: [...] {} [...]", code.to_owned()));
+                return Err(format!("Invalid Tin code: [...] {} [...]", code.to_owned()));
 
             } else {
                 let opt_i = opt.unwrap();
 
                 match opt_i.0.clone(){
                     TinToken::Def(s) => {
-                        fn exec_func(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>){
+                        fn exec_func(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>)  -> Result<(), String> {
                             let prg = intrp.functions_cache.get(tok.as_str()).cloned().unwrap();
-                            intrp.execute(&prg, prog_parent, stack);
+                            return intrp.execute(&prg, prog_parent, stack);
                         }
     
                         let parts = s.split("|").collect::<Vec<_>>();
-                        let func_code = self.parse(parts[1]);
+                        let func_code = self.parse(parts[1])?;
                         let func_name = parts[3];
     
                         self.functions_cache.entry(func_name.to_string()).or_insert(func_code);
@@ -158,10 +162,10 @@ impl TinInterpreter {
 
         self.parse_cache.entry(code_original.to_string()).or_insert(res.clone());
 
-        return res;
+        return Ok(res);
     }
 
-    pub fn execute(&mut self, program: &Vec<TinToken>, parent: Option<&Vec<TinToken>>, stack: &mut Vec<TinValue>){
+    pub fn execute(&mut self, program: &Vec<TinToken>, parent: Option<&Vec<TinToken>>, stack: &mut Vec<TinValue>) -> Result<(), String> {
         let mut ip: i64 = 0;
 
         while ip < program.len() as i64{
@@ -170,11 +174,13 @@ impl TinInterpreter {
             match token{
                 TinToken::Int(n) => stack.push(TinValue::Int(*n)),
                 TinToken::Float(n) => stack.push(TinValue::Float(*n)),
-                TinToken::Fn(s, f) => f(s.to_string(), self, program, parent, &mut ip, stack),
+                TinToken::Fn(s, f) => f(s.clone(), self, program, parent, &mut ip, stack).map_err(|err| format!("Error at instruction {} (pos. {}): {}", s, ip, err))?,
                 _ => {}
             };
 
             ip += 1;
         }
+
+        return Ok(());
     }
 }

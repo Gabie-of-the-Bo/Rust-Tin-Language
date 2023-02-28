@@ -4,7 +4,7 @@ use rand::Rng;
 
 pub fn naive_primality_benchmark(c: &mut Criterion) {
     let mut intrp = TinInterpreter::new();
-    let program = intrp.parse("→n.n√⊳ι``.n%∀1.n>∧←n");
+    let program = intrp.parse("→n.n√⊳ι``.n%∀1.n>∧←n").unwrap();
 
     let mut group = c.benchmark_group("Naive primality");
 
@@ -21,7 +21,7 @@ pub fn naive_primality_benchmark(c: &mut Criterion) {
 
 pub fn iterative_fibonacci_benchmark(c: &mut Criterion) {
     let mut intrp = TinInterpreter::new();
-    let program = intrp.parse("!!→n1<?⟨2ι→r ⊲ι{(.r1↓ .r∑)→.r}.r1↓→.n⟩.n←r←n");
+    let program = intrp.parse("!!→n1<?⟨2ι→r ⊲ι{(.r1↓ .r∑)→.r}.r1↓→.n⟩.n←r←n").unwrap();
 
     let mut group = c.benchmark_group("Iterative fibonacci");
 
@@ -38,7 +38,7 @@ pub fn iterative_fibonacci_benchmark(c: &mut Criterion) {
 
 pub fn recursive_fibonacci_benchmark(c: &mut Criterion) {
     let mut intrp = TinInterpreter::new();
-    let program = intrp.parse("!1<?⟨⊲!⊲∇↶∇+⟩");
+    let program = intrp.parse("!1<?⟨⊲!⊲∇↶∇+⟩").unwrap();
 
     let mut group = c.benchmark_group("Recursive fibonacci");
 
@@ -57,7 +57,7 @@ pub fn mode_benchmark(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
 
     let mut intrp = TinInterpreter::new();
-    let program = intrp.parse("→n(.n{.n↶#})!⌈º0↓.n↶↓←n");
+    let program = intrp.parse("→n(.n{.n↶#})!⌈º0↓.n↶↓←n").unwrap();
 
     let mut group = c.benchmark_group("Mode");
 

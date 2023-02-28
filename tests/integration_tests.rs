@@ -35,7 +35,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "→n.n√⊳ι``.n%∀1.n>∧←n";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in (0..1000).chain(10000..10100){
             let mut stack = vec!(TinValue::Int(i));
@@ -43,7 +43,7 @@ mod full_programs{
             let correct_res = TinValue::Int(result(i));
 
             if *stack.last().unwrap() != correct_res {
-                panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
+                panic!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
             }
         }
     }
@@ -63,7 +63,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "!ι⊳↶%𝔹¬∑";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in (0..1000).chain(10000..10100){
             let mut stack = vec!(TinValue::Int(i));
@@ -71,7 +71,7 @@ mod full_programs{
             let correct_res = TinValue::Int(result(i));
 
             if *stack.last().unwrap() != correct_res {
-                panic!(format!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string()));
+                panic!("Invalid output for input {}: {} != {}", i, stack.last().unwrap().to_string(), correct_res.to_string());
             }
         }
     }
@@ -88,7 +88,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "ι⊳∏";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in 0..20{
             let mut stack = vec!(TinValue::Int(i));
@@ -116,7 +116,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "|ι⊳∏|→|F| (ι⊳{F1.0/}2)∑";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in 2..20{
             let mut stack = vec!(TinValue::Int(i));
@@ -145,7 +145,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "◊⟨!!⊲∇·→n⟩:⟨1→n⟩.n←n";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in 0..20{
             let mut stack = vec!(TinValue::Int(i));
@@ -177,7 +177,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "!1<?⟨⊲!⊲∇↶∇+⟩";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in 0..20{
             let mut stack = vec!(TinValue::Int(i));
@@ -209,7 +209,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "!!→n1<?⟨2ι→r ⊲ι{(.r1↓ .r∑)→.r}.r1↓→.n⟩.n←r←n";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in 0..45{
             let mut stack = vec!(TinValue::Int(i));
@@ -241,7 +241,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "2 5√⊳/^5√↶/.5+⌋";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in 0..45{
             let mut stack = vec!(TinValue::Int(i));
@@ -271,7 +271,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "!⍴↶∑/";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for _ in (0..100).chain(10000..10100){
             let mut v = vec!();
@@ -316,7 +316,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "!!!⍴↶∑/-2↶^∑↶⍴↶/";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for _ in 0..100{
             let mut v = vec!();
@@ -364,7 +364,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "→n(.n{.n↶#})!⌈º0↓.n↶↓←n";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for _ in 0..100{
             let mut v = vec!();
@@ -391,7 +391,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "(⊳ι{¡0})";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in 1..20{
             let mut stack = vec!(TinValue::Int(i));
@@ -429,7 +429,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "[{}]⌊";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in 1..110{
             let two = TinValue::Int(2);
@@ -475,7 +475,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "→n(.nι{.nι!-↶1↶↑})←n";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in 1..20{
             let mut stack = vec!(TinValue::Int(i));
@@ -492,7 +492,7 @@ mod full_programs{
         let mut intrp = TinInterpreter::new();
 
         let code = "→.n .n2↶%◊⟨3.n·⊳→.n⟩:⟨2.n/→.n⟩ .n1<?⟨.n∇⟩ ←n";
-        let program = intrp.parse(code);
+        let program = intrp.parse(code).unwrap();
 
         for i in 1..100{
             let mut stack = vec!(TinValue::Int(i));
@@ -530,7 +530,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code, Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
                 results.push(stack.pop().unwrap());
             }
 
@@ -555,7 +555,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code, Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
                 results.push(stack.pop().unwrap());
             }
 
@@ -581,7 +581,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code, Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
                 results.push(stack.pop().unwrap());
             }
 
@@ -606,7 +606,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.0.clone(), test_data.1.clone());
-                intrp.execute(&code, Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
                 results.push(stack.pop().unwrap());
             }
 
@@ -630,7 +630,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code, Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
                 results.push(stack.pop().unwrap());
             }
 
@@ -654,7 +654,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code, Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
                 results.push(stack.pop().unwrap());
             }
 
@@ -680,7 +680,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code, Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
                 results.push(stack.pop().unwrap());
             }
 
@@ -704,7 +704,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.0.clone(), test_data.1.clone());
-                intrp.execute(&code, Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
                 results.push(stack.pop().unwrap());
             }
 
