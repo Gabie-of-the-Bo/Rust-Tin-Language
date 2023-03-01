@@ -39,7 +39,7 @@ mod full_programs{
 
         for i in (0..1000).chain(10000..10100){
             let mut stack = vec!(TinValue::Int(i));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = TinValue::Int(result(i));
 
             if *stack.last().unwrap() != correct_res {
@@ -67,7 +67,7 @@ mod full_programs{
 
         for i in (0..1000).chain(10000..10100){
             let mut stack = vec!(TinValue::Int(i));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = TinValue::Int(result(i));
 
             if *stack.last().unwrap() != correct_res {
@@ -92,7 +92,7 @@ mod full_programs{
 
         for i in 0..20{
             let mut stack = vec!(TinValue::Int(i));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = TinValue::Int(result(i));
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
@@ -110,17 +110,17 @@ mod full_programs{
                 };
             }
 
-            return (0..m + 1).map(|i| 1 as f64 / fact(i) as f64).sum();
+            return (0..m).map(|i| 1 as f64 / fact(i) as f64).sum();
         }
 
         let mut intrp = TinInterpreter::new();
 
-        let code = "|ι⊳∏|→|F| (ι⊳{F1.0/}2)∑";
+        let code = "|ι⊳∏|→|F| ι[F1.0/]∑";
         let program = intrp.parse(code).unwrap();
 
         for i in 2..20{
             let mut stack = vec!(TinValue::Int(i));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = TinValue::Float(result(i));
 
             match (stack.last().unwrap(), &correct_res){
@@ -149,7 +149,7 @@ mod full_programs{
 
         for i in 0..20{
             let mut stack = vec!(TinValue::Int(i));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = TinValue::Int(result(i));
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
@@ -181,7 +181,7 @@ mod full_programs{
 
         for i in 0..20{
             let mut stack = vec!(TinValue::Int(i));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = TinValue::Int(result(i));
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
@@ -213,7 +213,7 @@ mod full_programs{
 
         for i in 0..45{
             let mut stack = vec!(TinValue::Int(i));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = TinValue::Int(result(i));
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
@@ -245,7 +245,7 @@ mod full_programs{
 
         for i in 0..45{
             let mut stack = vec!(TinValue::Int(i));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = TinValue::Int(result(i));
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
@@ -281,7 +281,7 @@ mod full_programs{
             }
 
             let mut stack = vec!(TinValue::Vector(v.clone()));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = result(v.clone());
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
@@ -326,7 +326,7 @@ mod full_programs{
             }
 
             let mut stack = vec!(TinValue::Vector(v.clone()));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = result(v.clone());
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
@@ -374,7 +374,7 @@ mod full_programs{
             }
 
             let mut stack = vec!(TinValue::Vector(v.clone()));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = result(v.clone());
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
@@ -395,7 +395,7 @@ mod full_programs{
 
         for i in 1..20{
             let mut stack = vec!(TinValue::Int(i));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = result(i);
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
@@ -449,7 +449,7 @@ mod full_programs{
 
             let mut stack = vec!(TinValue::Vector(v.clone()));
             println!("{}", stack.last().unwrap().to_string());
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = result(v);
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
@@ -479,7 +479,7 @@ mod full_programs{
 
         for i in 1..20{
             let mut stack = vec!(TinValue::Int(i));
-            intrp.execute(&program, Option::None, &mut stack);
+            intrp.execute(&program, Option::None, &mut stack).unwrap();
             let correct_res = result(i);
 
             assert_eq!(*stack.last().unwrap(), correct_res, 
@@ -496,7 +496,7 @@ mod full_programs{
 
         for i in 1..100{
             let mut stack = vec!(TinValue::Int(i));
-            intrp.execute(&program, Option::None, &mut stack); // This only has to execute in order to be correct
+            intrp.execute(&program, Option::None, &mut stack).unwrap(); // This only has to execute in order to be correct
         }
     }
 }
@@ -530,7 +530,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack).unwrap();
                 results.push(stack.pop().unwrap());
             }
 
@@ -555,7 +555,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack).unwrap();
                 results.push(stack.pop().unwrap());
             }
 
@@ -581,7 +581,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack).unwrap();
                 results.push(stack.pop().unwrap());
             }
 
@@ -606,7 +606,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.0.clone(), test_data.1.clone());
-                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack).unwrap();
                 results.push(stack.pop().unwrap());
             }
 
@@ -630,7 +630,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack).unwrap();
                 results.push(stack.pop().unwrap());
             }
 
@@ -654,7 +654,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack).unwrap();
                 results.push(stack.pop().unwrap());
             }
 
@@ -680,7 +680,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.clone());
-                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack).unwrap();
                 results.push(stack.pop().unwrap());
             }
 
@@ -704,7 +704,7 @@ mod equivalences{
 
             for code in &codes{
                 let mut stack = vec!(test_data.0.clone(), test_data.1.clone());
-                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack);
+                intrp.execute(&code.as_ref().unwrap(), Option::None, &mut stack).unwrap();
                 results.push(stack.pop().unwrap());
             }
 

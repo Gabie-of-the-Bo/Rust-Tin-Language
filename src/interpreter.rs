@@ -1,4 +1,3 @@
-use std::fmt::format;
 use std::option::Option;
 use std::cmp::*;
 use std::collections::HashMap;
@@ -74,8 +73,13 @@ pub enum TinToken {
     Def(String)
 }
 
+pub enum TinTokenDetector {
+    Regex(Regex),
+    Function(fn(&str) -> Option<(TinToken, usize)>)
+}
+
 pub struct TinInterpreter {
-    pub token_list: Vec<(Regex, fn(&str) -> TinToken)>,
+    pub token_list: Vec<(TinTokenDetector, fn(&str) -> TinToken)>,
 
     pub variables: HashMap<String, Vec<TinValue>>,
     pub loop_stack: Vec<(i64, Vec<TinValue>, usize)>,
@@ -111,21 +115,31 @@ impl TinInterpreter {
 
         while code.len() > 0 {
             let mut opt: Option<(TinToken, usize)> = None;
+            code = code.trim_start();
 
-            if code.starts_with(" "){
-                code = &code[1..];
-                continue;
-            }
+            for (det, f) in &self.token_list {
+                match det {
+                    TinTokenDetector::Regex(r) => {
+                        let m = r.find(code);
 
-            for (r, f) in &self.token_list {
-                let m = r.find(code);
+                        if m.is_some(){
+                            let m_uw = m.unwrap();
+                            let m_str = m_uw.as_str();
+                            
+                            if m_uw.start() == 0 && (opt.is_none() || m_str.len() > opt.as_ref().unwrap().1) {
+                                opt = Some((f(m_str), m_str.len()));
+                                break;
+                            }
+                        }
+                    }
 
-                if m.is_some(){
-                    let m_uw = m.unwrap();
-                    let m_str = m_uw.as_str();
-                    
-                    if m_uw.start() == 0 && (opt.is_none() || m_str.len() > opt.as_ref().unwrap().1) {
-                        opt = Some((f(m_str), m_str.len()));
+                    TinTokenDetector::Function(f) => {
+                        let m = f(code);
+
+                        if m.is_some(){
+                            opt = Some(m.unwrap());
+                            break;
+                        }
                     }
                 }
             }
@@ -149,7 +163,7 @@ impl TinInterpreter {
     
                         self.functions_cache.entry(func_name.to_string()).or_insert(func_code);
     
-                        self.token_list.push((Regex::new(func_name).unwrap(), |s| TinToken::Fn(s.to_string(), exec_func)));
+                        self.token_list.push((TinTokenDetector::Regex(Regex::new(func_name).unwrap()), |s| TinToken::Fn(s.to_string(), exec_func)));
                     }
 
                     _ => {}
