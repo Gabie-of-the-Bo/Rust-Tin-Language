@@ -1,6 +1,7 @@
 use std::option::Option;
 use std::cmp::*;
 use std::collections::HashMap;
+use rand::rngs::ThreadRng;
 use regex::Regex;
 
 use crate::stdfuncs::std_tin_functions;
@@ -88,7 +89,8 @@ pub struct TinInterpreter {
     pub parse_cache: HashMap<String, Vec<TinToken>>,
     pub functions_cache: HashMap<String, Vec<TinToken>>,
 
-    pub output: String
+    pub output: String,
+    pub rng: ThreadRng
 }
 
 impl TinInterpreter {
@@ -101,7 +103,8 @@ impl TinInterpreter {
             map_stack: vec!(),
             parse_cache: HashMap::new(),
             functions_cache: HashMap::new(),
-            output: String::new()
+            output: String::new(),
+            rng: rand::thread_rng()
         }
     }
 
@@ -116,6 +119,10 @@ impl TinInterpreter {
         while code.len() > 0 {
             let mut opt: Option<(TinToken, usize)> = None;
             code = code.trim_start();
+
+            if code.is_empty() {
+                break;
+            }
 
             for (det, f) in &self.token_list {
                 match det {

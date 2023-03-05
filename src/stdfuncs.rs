@@ -1,3 +1,4 @@
+use rand::Rng;
 use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -47,6 +48,16 @@ fn tin_copy(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _p
     } else {
         return Err("Popped element was not an int".into());
     }
+    
+    return Ok(());
+}
+
+fn tin_unpack(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {    
+    match safe_pop(stack)? {
+        TinValue::Vector(mut v) => stack.append(&mut v),
+
+        _ => return Err("Popped element was not a vector".into())
+    };
     
     return Ok(());
 }
@@ -244,11 +255,29 @@ fn tin_lt(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pro
     return Ok(());
 }
 
+fn tin_leq(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    let a = safe_pop(stack)?;
+    let b = safe_peek(stack)?;
+
+    *stack.last_mut().unwrap() = wrappers::leq(&a, &b);
+    
+    return Ok(());
+}
+
 fn tin_gt(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     let a = safe_pop(stack)?;
     let b = safe_peek(stack)?;
 
     *stack.last_mut().unwrap() = wrappers::gt(&a, &b);
+    
+    return Ok(());
+}
+
+fn tin_geq(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    let a = safe_pop(stack)?;
+    let b = safe_peek(stack)?;
+
+    *stack.last_mut().unwrap() = wrappers::geq(&a, &b);
     
     return Ok(());
 }
@@ -337,6 +366,12 @@ fn tin_floor(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _
     return Ok(());
 }
 
+fn tin_rand(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    stack.push(TinValue::Float(intrp.rng.gen()));
+
+    return Ok(());
+}
+
 fn tin_ceil(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     *stack.last_mut().unwrap() = wrappers::ceil(&stack.last().unwrap());
 
@@ -346,6 +381,12 @@ fn tin_ceil(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _p
 
 fn tin_truthy(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     *stack.last_mut().unwrap() = wrappers::truthy(&stack.last().unwrap());
+    
+    return Ok(());
+}
+
+fn tin_float(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    *stack.last_mut().unwrap() = wrappers::float(&stack.last().unwrap());
     
     return Ok(());
 }
@@ -830,6 +871,74 @@ fn tin_merge(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _
     return Ok(());
 }
 
+fn tin_cartesian(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {    
+    let mut v1 = safe_pop(stack)?;
+    let mut v2 = safe_pop(stack)?;
+
+    match (&mut v1, &mut v2) {
+        (TinValue::Vector(a), TinValue::Vector(b)) => {
+            let mut res = vec!();
+            res.reserve(a.len() * b.len());
+
+            for i in a.iter() {
+                for j in b.iter() {
+                    res.push(TinValue::Vector(vec!(i.clone(), j.clone())));
+                }   
+            }
+
+            stack.push(TinValue::Vector(res));
+        },
+
+        _ => return Err("Popped elements were not two vectors".into())
+    };
+    
+    return Ok(());
+}
+
+fn tin_zip(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {    
+    let mut v1 = safe_pop(stack)?;
+    let mut v2 = safe_pop(stack)?;
+
+    match (&mut v1, &mut v2) {
+        (TinValue::Vector(a), TinValue::Vector(b)) => {
+            stack.push(TinValue::Vector(a.iter().zip(b.iter()).map(|(i, j)| TinValue::Vector(vec!(i.clone(), j.clone()))).collect()));
+        },
+
+        _ => return Err("Popped elements were not two vectors".into())
+    };
+    
+    return Ok(());
+}
+
+fn flatten_value(val: TinValue) -> Vec<TinValue> {
+    return match val {
+        TinValue::Vector(v) => v.into_iter().flat_map(flatten_value).collect(),
+        _ => vec!(val)
+    };
+}
+
+fn tin_flatten(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {    
+    match safe_pop(stack)? {
+        TinValue::Vector(v) => {
+            stack.push(TinValue::Vector(v.into_iter().flat_map(flatten_value).collect()));
+        },
+
+        _ => return Err("Popped element was not a vector".into())
+    };
+    
+    return Ok(());
+}
+
+fn tin_reverse(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {    
+    match safe_peek(stack)? {
+        TinValue::Vector(v) => v.reverse(),
+
+        _ => return Err("Popped element was not a vector".into())
+    };
+    
+    return Ok(());
+}
+
 fn tin_append(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {    
     let elem = safe_pop(stack)?;
 
@@ -926,6 +1035,7 @@ pub fn std_tin_functions() -> Vec<(TinTokenDetector, fn(&str) -> TinToken)> {
         (from_re(r"!"), |s| TinToken::Fn(s.to_string(), tin_dup)),
         (from_re(r"↶"), |s| TinToken::Fn(s.to_string(), tin_swap)),
         (from_re(r"↷"), |s| TinToken::Fn(s.to_string(), tin_copy)),
+        (from_re(r"⋮"), |s| TinToken::Fn(s.to_string(), tin_unpack)),
 
         (from_re(r"→[a-z_]+"), |s| TinToken::Fn(s[3..].to_string(), tin_define_var)),
         (from_re(r"→\.[a-z_]+"), |s| TinToken::Fn(s[4..].to_string(), tin_redefine_var)),
@@ -963,9 +1073,12 @@ pub fn std_tin_functions() -> Vec<(TinTokenDetector, fn(&str) -> TinToken)> {
 
         (from_re(r"⌉"), |s| TinToken::Fn(s.to_string(), tin_ceil)),
         (from_re(r"⌋"), |s| TinToken::Fn(s.to_string(), tin_floor)),
+        
+        (from_re(r"⫰"), |s| TinToken::Fn(s.to_string(), tin_rand)),
 
         // Logic
         (from_re(r"𝔹"), |s| TinToken::Fn(s.to_string(), tin_truthy)),
+        (from_re(r"𝔽"), |s| TinToken::Fn(s.to_string(), tin_float)),
 
         (from_re(r"¬"), |s| TinToken::Fn(s.to_string(), tin_neg)),
         (from_re(r"∨"), |s| TinToken::Fn(s.to_string(), tin_or)),
@@ -973,7 +1086,9 @@ pub fn std_tin_functions() -> Vec<(TinTokenDetector, fn(&str) -> TinToken)> {
 
         (from_re(r"="), |s| TinToken::Fn(s.to_string(), tin_eq)),
         (from_re(r"<"), |s| TinToken::Fn(s.to_string(), tin_lt)),
+        (from_re(r"≤"), |s| TinToken::Fn(s.to_string(), tin_leq)),
         (from_re(r">"), |s| TinToken::Fn(s.to_string(), tin_gt)),
+        (from_re(r"≥"), |s| TinToken::Fn(s.to_string(), tin_geq)),
 
         (from_re(r"∃"), |s| TinToken::Fn(s.to_string(), tin_any)),
         (from_re(r"∄"), |s| TinToken::Fn(s.to_string(), tin_none)),
@@ -1010,6 +1125,10 @@ pub fn std_tin_functions() -> Vec<(TinTokenDetector, fn(&str) -> TinToken)> {
 
         (from_re(r","), |s| TinToken::Fn(s.to_string(), tin_append)),
         (from_re(r"_"), |s| TinToken::Fn(s.to_string(), tin_merge)),
+        (from_re(r"⨯"), |s| TinToken::Fn(s.to_string(), tin_cartesian)),
+        (from_re(r"⨝"), |s| TinToken::Fn(s.to_string(), tin_zip)),
+        (from_re(r"⊔"), |s| TinToken::Fn(s.to_string(), tin_flatten)),
+        (from_re(r"⤾"), |s| TinToken::Fn(s.to_string(), tin_reverse)),
 
         // Functional array manipulation
         (from_re(r"`"), |s| TinToken::Fn(s.to_string(), drop_first)),
@@ -1021,3 +1140,14 @@ pub fn std_tin_functions() -> Vec<(TinTokenDetector, fn(&str) -> TinToken)> {
 
     return res;
 }
+
+/*
+|!ι[¡⫰!·⫰!·+1>]∑𝔽/4·|→|π|
+|!ι[¡⫰!·⫰!·+1>]∑𝔽/4·|→|P|
+10ι⊳
+10ι2·⊳
+⨝
+[]
+$
+10ι[⊳2↶%2·⊲]
+*/

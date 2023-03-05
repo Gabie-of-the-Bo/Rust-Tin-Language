@@ -11,6 +11,7 @@ fn main(){
 
     let now = Instant::now();
 
+
     println!("{}", parallelism::get_parallelization());
 
     for _ in 0..1{

@@ -30,6 +30,16 @@ pub fn truthy(a: &TinValue) -> TinValue{
     }
 }
 
+pub fn float(a: &TinValue) -> TinValue{
+    return match a{
+        TinValue::Vector(v) => if parallelizable(v.len()) {TinValue::Vector(v.par_iter().map(float).collect())}
+                                                     else {TinValue::Vector(v.iter().map(float).collect())},
+
+        TinValue::Int(n) => TinValue::Float(*n as f64),
+        f => f.clone()
+    }
+}
+
 pub fn neg(a: &TinValue) -> TinValue{
     return match a{
         TinValue::Vector(v) => if parallelizable(v.len()) {TinValue::Vector(v.par_iter().map(neg).collect())}
@@ -81,6 +91,30 @@ pub fn lt(aa: &TinValue, bb: &TinValue) -> TinValue{
     };
 }
 
+pub fn leq(aa: &TinValue, bb: &TinValue) -> TinValue{
+    return match (aa, bb) {
+        (TinValue::Int(a), TinValue::Int(b)) => TinValue::Int((a <= b) as i64),
+        (TinValue::Int(a), TinValue::Float(b)) => TinValue::Int((*a as f64 <= *b) as i64),
+        (TinValue::Float(a), TinValue::Int(b)) => TinValue::Int((*a <= *b as f64) as i64),
+        (TinValue::Float(a), TinValue::Float(b)) => TinValue::Int((a <= b) as i64),
+
+        (TinValue::Int(_), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| leq(aa, v)).collect::<Vec<_>>())}
+                                                                         else {TinValue::Vector(b.iter().map(|v| leq(aa, v)).collect::<Vec<_>>())},
+
+        (TinValue::Vector(b), TinValue::Int(_)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| leq(v, bb)).collect::<Vec<_>>())}
+                                                                         else {TinValue::Vector(b.iter().map(|v| leq(v, bb)).collect::<Vec<_>>())},
+
+        (TinValue::Float(_), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| leq(aa, v)).collect::<Vec<_>>())}
+                                                                           else {TinValue::Vector(b.iter().map(|v| leq(aa, v)).collect::<Vec<_>>())},
+
+        (TinValue::Vector(b), TinValue::Float(_)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| leq(v, bb)).collect::<Vec<_>>())}
+                                                                           else {TinValue::Vector(b.iter().map(|v| leq(v, bb)).collect::<Vec<_>>())},
+
+        (TinValue::Vector(a), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(a.par_iter().zip(b).map(|t| leq(t.0, t.1)).collect::<Vec<_>>())}
+                                                                            else {TinValue::Vector(a.iter().zip(b).map(|t| leq(t.0, t.1)).collect::<Vec<_>>())},
+    };
+}
+
 pub fn gt(aa: &TinValue, bb: &TinValue) -> TinValue{
     return match (aa, bb) {
         (TinValue::Int(a), TinValue::Int(b)) => TinValue::Int((a > b) as i64),
@@ -102,6 +136,30 @@ pub fn gt(aa: &TinValue, bb: &TinValue) -> TinValue{
 
         (TinValue::Vector(a), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(a.par_iter().zip(b).map(|t| gt(t.0, t.1)).collect::<Vec<_>>())}
                                                                             else {TinValue::Vector(a.iter().zip(b).map(|t| gt(t.0, t.1)).collect::<Vec<_>>())},
+    };
+}
+
+pub fn geq(aa: &TinValue, bb: &TinValue) -> TinValue{
+    return match (aa, bb) {
+        (TinValue::Int(a), TinValue::Int(b)) => TinValue::Int((a >= b) as i64),
+        (TinValue::Int(a), TinValue::Float(b)) => TinValue::Int((*a as f64 >= *b) as i64),
+        (TinValue::Float(a), TinValue::Int(b)) => TinValue::Int((*a >= *b as f64) as i64),
+        (TinValue::Float(a), TinValue::Float(b)) => TinValue::Int((a >= b) as i64),
+
+        (TinValue::Int(_), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| geq(aa, v)).collect::<Vec<_>>())}
+                                                                         else {TinValue::Vector(b.iter().map(|v| geq(aa, v)).collect::<Vec<_>>())},
+
+        (TinValue::Vector(b), TinValue::Int(_)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| geq(v, bb)).collect::<Vec<_>>())}
+                                                                         else {TinValue::Vector(b.iter().map(|v| geq(v, bb)).collect::<Vec<_>>())},
+
+        (TinValue::Float(_), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| geq(aa, v)).collect::<Vec<_>>())}
+                                                                           else {TinValue::Vector(b.iter().map(|v| geq(aa, v)).collect::<Vec<_>>())},
+
+        (TinValue::Vector(b), TinValue::Float(_)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| geq(v, bb)).collect::<Vec<_>>())}
+                                                                           else {TinValue::Vector(b.iter().map(|v| geq(v, bb)).collect::<Vec<_>>())},
+
+        (TinValue::Vector(a), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(a.par_iter().zip(b).map(|t| geq(t.0, t.1)).collect::<Vec<_>>())}
+                                                                            else {TinValue::Vector(a.iter().zip(b).map(|t| geq(t.0, t.1)).collect::<Vec<_>>())},
     };
 }
 
