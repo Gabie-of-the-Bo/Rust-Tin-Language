@@ -385,7 +385,7 @@ mod full_programs{
     #[test]
     fn zero_vector_generation(){
         fn result(n: i64) -> TinValue{
-            return TinValue::Vector(vec!(TinValue::Int(0); n as usize));
+            return TinValue::IntVector(vec!(0; n as usize));
         }
 
         let mut intrp = TinInterpreter::new();
@@ -509,7 +509,7 @@ mod equivalences{
 
     fn generate_vector(length: i64, max_size: i64) -> TinValue{
         let mut rng = rand::thread_rng();
-        return TinValue::Vector((0..length).map(|_| TinValue::Int(rng.gen_range(0..max_size))).collect())
+        return TinValue::IntVector((0..length).map(|_| rng.gen_range(0..max_size)).collect())
     }
 
     #[test]

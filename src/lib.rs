@@ -6,6 +6,7 @@ extern crate lazy_static;
 pub mod wrappers;
 pub mod interpreter;
 pub mod parallelism;
+pub mod simd;
 mod stdfuncs;
 
 #[wasm_bindgen]

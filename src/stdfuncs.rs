@@ -1,8 +1,8 @@
 use rand::Rng;
 use regex::Regex;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet, HashMap};
 
-use crate::wrappers;
+use crate::{wrappers, simd};
 use crate::interpreter::{*};
 use crate::parallelism;
 
@@ -55,6 +55,8 @@ fn tin_copy(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _p
 fn tin_unpack(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {    
     match safe_pop(stack)? {
         TinValue::Vector(mut v) => stack.append(&mut v),
+        TinValue::IntVector(v) => stack.extend(v.into_iter().map(TinValue::Int)),
+        TinValue::FloatVector(v) => stack.extend(v.into_iter().map(TinValue::Float)),
 
         _ => return Err("Popped element was not a vector".into())
     };
@@ -138,13 +140,15 @@ fn tin_foreach_init(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinTok
 
     } else{
         match safe_pop(stack)? {
-            TinValue::Vector(v) => intrp.loop_stack.push((*ip, v, 0)),
+            TinValue::Vector(v) => intrp.loop_stack.push((*ip, TinVector::Mixed(v), 0)),
+            TinValue::IntVector(v) => intrp.loop_stack.push((*ip, TinVector::Int(v), 0)),
+            TinValue::FloatVector(v) => intrp.loop_stack.push((*ip, TinVector::Float(v), 0)),
 
             _ => return Err("Popped element was not a vector".into())
         }
     }
 
-    stack.push(intrp.loop_stack.last().unwrap().1[intrp.loop_stack.last().unwrap().2].clone());
+    stack.push(intrp.loop_stack.last().unwrap().1.get(intrp.loop_stack.last().unwrap().2).clone());
     
     return Ok(());
 }
@@ -171,8 +175,9 @@ fn tin_storer_init(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToke
 fn tin_storer_end(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     let idx = intrp.storer_stack.pop().unwrap();
     
-    let arr = TinValue::Vector(stack.drain(idx..).collect::<Vec<_>>());
-    stack.push(arr);
+    let mut acum = TinVector::Mixed(vec!());
+    stack.drain(idx..).for_each(|i| acum.push(i));
+    stack.push(acum.to_value());
     
     return Ok(());
 }
@@ -183,13 +188,15 @@ fn tin_map_init(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>,
 
     } else{
         match safe_pop(stack)? {
-            TinValue::Vector(v) => intrp.map_stack.push((*ip, v, 0, stack.len(), vec!())),
+            TinValue::Vector(v) => intrp.map_stack.push((*ip, TinVector::Mixed(v), 0, stack.len(), TinVector::Mixed(vec!()))),
+            TinValue::IntVector(v) => intrp.map_stack.push((*ip, TinVector::Int(v), 0, stack.len(), TinVector::Mixed(vec!()))),
+            TinValue::FloatVector(v) => intrp.map_stack.push((*ip, TinVector::Float(v), 0, stack.len(), TinVector::Mixed(vec!()))),
 
             _ => return Err("Popped element was not a vector".into())
         }
     }
 
-    stack.push(intrp.map_stack.last().unwrap().1[intrp.map_stack.last().unwrap().2].clone());
+    stack.push(intrp.map_stack.last().unwrap().1.get(intrp.map_stack.last().unwrap().2).clone());
     
     return Ok(());
 }
@@ -197,14 +204,14 @@ fn tin_map_init(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>,
 fn tin_map_end(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     let (pos, arr, idx, stack_pos, acum) = intrp.map_stack.last_mut().unwrap();
 
-    acum.append(&mut stack.drain(*stack_pos..).collect());
+    stack.drain(*stack_pos..).for_each(|i| acum.push(i));
 
     if *idx < arr.len() - 1 {
         *ip = *pos - 1;
 
     } else{
         let (_, _, _, _, acum) = intrp.map_stack.pop().unwrap();
-        stack.push(TinValue::Vector(acum));
+        stack.push(acum.to_value());
     }
     
     return Ok(());
@@ -426,6 +433,9 @@ fn tin_any(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
             }
         },
 
+        TinValue::IntVector(v) => TinValue::Int(v.into_iter().any(|i| i != 0) as i64),
+        TinValue::FloatVector(v) => TinValue::Int(v.into_iter().any(|i| i != 0.0) as i64),
+
         _ => return Err("Popped element was not a vector".into())
     };
     
@@ -445,6 +455,9 @@ fn tin_none(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _p
             }
         },
 
+        TinValue::IntVector(v) => TinValue::Int(v.into_iter().all(|i| i == 0) as i64),
+        TinValue::FloatVector(v) => TinValue::Int(v.into_iter().all(|i| i == 0.0) as i64),
+
         _ => return Err("Popped element was not a vector".into())
     };
     
@@ -463,6 +476,9 @@ fn tin_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
                 TinValue::Int(v.iter().all(TinValue::truthy) as i64)
             }
         },
+
+        TinValue::IntVector(v) => TinValue::Int(v.into_iter().all(|i| i != 0) as i64),
+        TinValue::FloatVector(v) => TinValue::Int(v.into_iter().all(|i| i != 0.0) as i64),
         
         _ => return Err("Popped element was not a vector".into())
     };
@@ -474,8 +490,8 @@ fn tin_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
 
 fn iota(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     let res = match safe_pop(stack)? {
-        TinValue::Int(a) => TinValue::Vector((0..a).map(TinValue::Int).collect::<Vec<_>>()),
-        TinValue::Float(a) => TinValue::Vector((0..a as i64).map(TinValue::Int).collect::<Vec<_>>()),
+        TinValue::Int(a) => TinValue::IntVector((0..a).collect::<Vec<_>>()),
+        TinValue::Float(a) => TinValue::IntVector((0..a as i64).collect::<Vec<_>>()),
 
         _ => return Err("Popped element was not an int or a float".into())
     };
@@ -495,10 +511,20 @@ fn boxed(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog
 fn set(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     let idx = safe_pop(stack)?;
     let elem = safe_pop(stack)?;
-    let v = safe_peek(stack)?;
+    let mut v = safe_peek(stack)?;
 
-    match (idx, v) {
+    match (idx, &mut v) {
         (TinValue::Int(a), TinValue::Vector(v)) => v[a as usize] = elem,
+        (TinValue::Int(a), TinValue::IntVector(v_inner)) => {
+            let mut new_inner = v_inner.iter().copied().map(TinValue::Int).collect::<Vec<_>>();
+            new_inner[a as usize] = elem;
+            *v = TinValue::Vector(new_inner);
+        },
+        (TinValue::Int(a), TinValue::FloatVector(v_inner)) => {
+            let mut new_inner = v_inner.iter().copied().map(TinValue::Float).collect::<Vec<_>>();
+            new_inner[a as usize] = elem;
+            *v = TinValue::Vector(new_inner);
+        },
 
         _ => return Err("Popped elements were not an int and a vector".into())
     };
@@ -512,6 +538,8 @@ fn get(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_p
 
     let res = match (idx, v) {
         (TinValue::Int(a), TinValue::Vector(v)) => v[a as usize].clone(),
+        (TinValue::Int(a), TinValue::IntVector(v)) => TinValue::Int(v[a as usize]),
+        (TinValue::Int(a), TinValue::FloatVector(v)) => TinValue::Float(v[a as usize]),
 
         _ => return Err("Popped elements were not an int and a vector".into())
     };
@@ -527,6 +555,8 @@ fn get_nc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pro
 
     let res = match (idx, v) {
         (TinValue::Int(a), TinValue::Vector(v)) => v[a as usize].clone(),
+        (TinValue::Int(a), TinValue::IntVector(v)) => TinValue::Int(v[a as usize]),
+        (TinValue::Int(a), TinValue::FloatVector(v)) => TinValue::Float(v[a as usize]),
 
         _ => return Err("Popped elements were not an int and a vector".into())
     };
@@ -553,6 +583,9 @@ fn tin_sum_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>,
             }
         },
 
+        TinValue::IntVector(v) => stack.push(TinValue::Int(simd::sum_i64(&v))),
+        TinValue::FloatVector(v) => stack.push(TinValue::Float(simd::sum_f64(&v))),
+
         _ => return Err("Popped element was not a vector".into())
     };
     
@@ -576,6 +609,9 @@ fn tin_mul_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>,
             }
         },
 
+        TinValue::IntVector(v) => stack.push(TinValue::Int(simd::product_i64(&v))),
+        TinValue::FloatVector(v) => stack.push(TinValue::Float(simd::product_f64(&v))),
+
         _ => return Err("Popped element was not a vector".into())
     };
     
@@ -585,6 +621,8 @@ fn tin_mul_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>,
 fn tin_len(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     let res = match safe_pop(stack)? {
         TinValue::Vector(v) => TinValue::Int(v.len() as i64),
+        TinValue::IntVector(v) => TinValue::Int(v.len() as i64),
+        TinValue::FloatVector(v) => TinValue::Int(v.len() as i64),
 
         _ => return Err("Popped element was not a vector".into())
     };
@@ -612,7 +650,10 @@ fn tin_max(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     
                 stack.push(res.clone());
             }
-        }
+        },
+
+        TinValue::IntVector(v) => stack.push(TinValue::Int(v.into_iter().max().unwrap())),
+        TinValue::FloatVector(v) => stack.push(TinValue::Float(v.into_iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap())),
 
         _ => return Err("Popped element was not a vector".into())
     };
@@ -638,7 +679,10 @@ fn tin_min(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     
                 stack.push(res.clone());
             }
-        }
+        },
+
+        TinValue::IntVector(v) => stack.push(TinValue::Int(v.into_iter().min().unwrap())),
+        TinValue::FloatVector(v) => stack.push(TinValue::Float(v.into_iter().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap())),
 
         _ => return Err("Popped element was not a vector".into())
     };
@@ -662,6 +706,9 @@ fn tin_count(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _
             stack.push(TinValue::Int(res));
         }
 
+        TinValue::IntVector(v) => stack.push(TinValue::Int(v.into_iter().filter(|i| TinValue::Int(*i) == elem).count() as i64)),
+        TinValue::FloatVector(v) => stack.push(TinValue::Int(v.into_iter().filter(|i| TinValue::Float(*i) == elem).count() as i64)),
+
         _ => return Err("Popped element was not a vector".into())
     };
     
@@ -684,6 +731,15 @@ fn tin_nc_count(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>
             stack.push(TinValue::Int(res));
         }
 
+        TinValue::IntVector(v) => {
+            let val = TinValue::Int(v.into_iter().filter(|i| TinValue::Int(**i) == elem).count() as i64);
+            stack.push(val);
+        },
+        TinValue::FloatVector(v) => {
+            let val = TinValue::Int(v.into_iter().filter(|i| TinValue::Float(**i) == elem).count() as i64);
+            stack.push(val);
+        },
+
         _ => return Err("Popped element was not a vector".into())
     };
     
@@ -699,11 +755,35 @@ fn tin_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _
 
             for (idx, i) in v.iter().enumerate(){
                 if *i == elem {
-                    res.push(TinValue::Int(idx as i64));
+                    res.push(idx as i64);
                 }
             }
 
-            stack.push(TinValue::Vector(res));
+            stack.push(TinValue::IntVector(res));
+        }
+
+        TinValue::IntVector(v) => {
+            let mut res = vec!();
+
+            for (idx, i) in v.iter().enumerate(){
+                if TinValue::Int(*i) == elem {
+                    res.push(idx as i64);
+                }
+            }
+
+            stack.push(TinValue::IntVector(res));
+        }
+
+        TinValue::FloatVector(v) => {
+            let mut res = vec!();
+
+            for (idx, i) in v.iter().enumerate(){
+                if TinValue::Float(*i) == elem {
+                    res.push(idx as i64);
+                }
+            }
+
+            stack.push(TinValue::IntVector(res));
         }
 
         _ => return Err("Popped element was not a vector".into())
@@ -721,11 +801,35 @@ fn tin_nc_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>
 
             for (idx, i) in v.iter().enumerate(){
                 if *i == elem {
-                    res.push(TinValue::Int(idx as i64));
+                    res.push(idx as i64);
                 }
             }
 
-            stack.push(TinValue::Vector(res));
+            stack.push(TinValue::IntVector(res));
+        }
+
+        TinValue::IntVector(v) => {
+            let mut res = vec!();
+
+            for (idx, i) in v.iter().enumerate(){
+                if TinValue::Int(*i) == elem {
+                    res.push(idx as i64);
+                }
+            }
+
+            stack.push(TinValue::IntVector(res));
+        }
+
+        TinValue::FloatVector(v) => {
+            let mut res = vec!();
+
+            for (idx, i) in v.iter().enumerate(){
+                if TinValue::Float(*i) == elem {
+                    res.push(idx as i64);
+                }
+            }
+
+            stack.push(TinValue::IntVector(res));
         }
 
         _ => return Err("Popped element was not a vector".into())
@@ -746,6 +850,34 @@ fn tin_from_index(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToke
             }).collect::<Result<Vec<TinValue>, String>>()?;
         }
 
+        (TinValue::IntVector(ref_v), TinValue::Vector(idx)) => {
+            *ref_v = idx.iter().map(|i| match i {
+                TinValue::Int(n) => Ok(ref_v[*n as usize]),
+                _ => Err("Popped element was not an int".to_string())
+            }).collect::<Result<Vec<i64>, String>>()?;
+        }
+
+        (TinValue::FloatVector(ref_v), TinValue::Vector(idx)) => {
+            *ref_v = idx.iter().map(|i| match i {
+                TinValue::Int(n) => Ok(ref_v[*n as usize]),
+                _ => Err("Popped element was not an int".to_string())
+            }).collect::<Result<Vec<f64>, String>>()?;
+        }
+
+        (TinValue::Vector(ref_v), TinValue::IntVector(idx)) => {
+            *ref_v = idx.iter().map(|i| ref_v[*i as usize].clone()).collect::<Vec<TinValue>>();
+        }
+
+        (TinValue::IntVector(ref_v), TinValue::IntVector(idx)) => {
+            *ref_v = idx.iter().map(|i| ref_v[*i as usize]).collect::<Vec<i64>>();
+        }
+
+        (TinValue::FloatVector(ref_v), TinValue::IntVector(idx)) => {
+            *ref_v = idx.iter().map(|i| ref_v[*i as usize]).collect::<Vec<f64>>();
+        }
+
+        (_, TinValue::FloatVector(_)) => return Err("Popped element was not an int".to_string()),
+
         _ => return Err("Popped elements were not two vectors".into())
     };
     
@@ -762,6 +894,9 @@ fn tin_sort_asc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>
                 v.sort_by(|a, b| a.partial_cmp(b).unwrap());
             }
         }
+
+        TinValue::IntVector(v) => v.sort(),
+        TinValue::FloatVector(v) => v.sort_by(|a, b| a.partial_cmp(b).unwrap()),
 
         _ => return Err("Popped element was not a vector".into())
     };
@@ -784,6 +919,20 @@ fn tin_sort_idx_asc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinTo
             *v = v_cpy.iter().map(|t| TinValue::Int(t.0 as i64)).collect();
         }
 
+        TinValue::IntVector(v) => {
+            let mut idxs = v.iter().copied().enumerate().collect::<Vec<_>>();
+            idxs.sort_by(|(_, a), (_, b)| a.cmp(b));
+
+            *v = idxs.into_iter().map(|(i, _)| i as i64).collect();
+        },
+
+        TinValue::FloatVector(v) => {
+            let mut idxs = v.iter().copied().enumerate().collect::<Vec<_>>();
+            idxs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
+
+            *v = idxs.into_iter().map(|(i, _)| i as f64).collect();
+        },
+
         _ => return Err("Popped element was not a vector".into())
     };
     
@@ -800,6 +949,9 @@ fn tin_sort_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken
                 v.sort_by(|a, b| b.partial_cmp(a).unwrap()); 
             }
         }
+
+        TinValue::IntVector(v) => v.sort_by(|a, b| b.cmp(a)),
+        TinValue::FloatVector(v) => v.sort_by(|a, b| b.partial_cmp(a).unwrap()),
 
         _ => return Err("Popped element was not a vector".into())
     };
@@ -822,6 +974,20 @@ fn tin_sort_idx_desc(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinT
             *v = v_cpy.iter().map(|t| TinValue::Int(t.0 as i64)).collect();
         }
 
+        TinValue::IntVector(v) => {
+            let mut idxs = v.iter().copied().enumerate().collect::<Vec<_>>();
+            idxs.sort_by(|(_, a), (_, b)| b.cmp(a));
+
+            *v = idxs.into_iter().map(|(i, _)| i as i64).collect();
+        },
+
+        TinValue::FloatVector(v) => {
+            let mut idxs = v.iter().copied().enumerate().collect::<Vec<_>>();
+            idxs.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap());
+
+            *v = idxs.into_iter().map(|(i, _)| i as f64).collect();
+        },
+
         _ => return Err("Popped element was not a vector".into())
     };
     
@@ -832,6 +998,15 @@ fn tin_unique(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, 
     match safe_peek(stack)? {
         TinValue::Vector(v) => {
             *v = v.iter().collect::<BTreeSet<_>>().iter().map(|i| (*i).clone()).collect();
+        },
+
+        TinValue::IntVector(v) => {
+            *v = v.iter().collect::<HashSet<_>>().iter().map(|i| (*i).clone()).collect();
+        },
+
+        TinValue::FloatVector(v) => {
+            v.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            v.dedup();
         },
 
         _ => return Err("Popped element was not a vector".into())
@@ -852,6 +1027,20 @@ fn tin_counts(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, 
             *v = v.iter().map(|i| TinValue::Int(*counts.get(i).unwrap() as i64)).collect();
         },
 
+        TinValue::IntVector(v) => {
+            let mut counts = HashMap::new();
+            v.iter().for_each(|i| *counts.entry(*i).or_insert(0) += 1);
+            
+            *v = v.into_iter().map(|i| *counts.get(i).unwrap()).collect();
+        },
+
+        TinValue::FloatVector(v) => {
+            let mut counts = BTreeMap::new();
+            v.iter().for_each(|i| *counts.entry(TinValue::Float(*i)).or_insert(0) += 1);
+            
+            *v = v.into_iter().map(|i| *counts.get(&TinValue::Float(*i)).unwrap() as f64).collect();
+        },
+
         _ => return Err("Popped element was not a vector".into())
     };
     
@@ -864,6 +1053,32 @@ fn tin_merge(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _
 
     match (&mut v1, &mut v2) {
         (TinValue::Vector(a), TinValue::Vector(b)) => b.append(a),
+        (TinValue::Vector(a), TinValue::IntVector(b)) => {
+            let mut new_inner = b.iter().copied().map(TinValue::Int).collect::<Vec<_>>();
+            new_inner.append(a);
+            *v2 = TinValue::Vector(new_inner);
+        },  
+        (TinValue::Vector(a), TinValue::FloatVector(b)) => {
+            let mut new_inner = b.iter().copied().map(TinValue::Float).collect::<Vec<_>>();
+            new_inner.append(a);
+            *v2 = TinValue::Vector(new_inner);
+        },
+        
+        (TinValue::IntVector(a), TinValue::Vector(b)) => b.extend(a.into_iter().map(|i| TinValue::Int(*i))),
+        (TinValue::IntVector(a), TinValue::IntVector(b)) => b.append(a),
+        (TinValue::IntVector(a), TinValue::FloatVector(b)) => {
+            let mut new_inner = b.iter().copied().map(TinValue::Float).collect::<Vec<_>>();
+            new_inner.extend(a.into_iter().map(|i| TinValue::Int(*i)));
+            *v2 = TinValue::Vector(new_inner);
+        },
+        
+        (TinValue::FloatVector(a), TinValue::FloatVector(b)) => b.append(a),
+        (TinValue::FloatVector(a), TinValue::Vector(b)) => b.extend(a.into_iter().map(|i| TinValue::Float(*i))),
+        (TinValue::FloatVector(a), TinValue::IntVector(b)) => {
+            let mut new_inner = b.iter().copied().map(TinValue::Int).collect::<Vec<_>>();
+            new_inner.extend(a.into_iter().map(|i| TinValue::Float(*i)));
+            *v2 = TinValue::Vector(new_inner);
+        },
 
         _ => return Err("Popped elements were not two vectors".into())
     };
@@ -889,6 +1104,110 @@ fn tin_cartesian(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken
             stack.push(TinValue::Vector(res));
         },
 
+        (TinValue::Vector(a), TinValue::IntVector(b)) => {
+            let mut res = vec!();
+            res.reserve(a.len() * b.len());
+
+            for i in a.iter() {
+                for j in b.iter() {
+                    res.push(TinValue::Vector(vec!(i.clone(), TinValue::Int(*j))));
+                }   
+            }
+
+            stack.push(TinValue::Vector(res));
+        },
+
+        (TinValue::Vector(a), TinValue::FloatVector(b)) => {
+            let mut res = vec!();
+            res.reserve(a.len() * b.len());
+
+            for i in a.iter() {
+                for j in b.iter() {
+                    res.push(TinValue::Vector(vec!(i.clone(), TinValue::Float(*j))));
+                }   
+            }
+
+            stack.push(TinValue::Vector(res));
+        },
+
+        (TinValue::IntVector(a), TinValue::IntVector(b)) => {
+            let mut res = vec!();
+            res.reserve(a.len() * b.len());
+
+            for i in a.iter() {
+                for j in b.iter() {
+                    res.push(TinValue::IntVector(vec!(i.clone(), j.clone())));
+                }   
+            }
+
+            stack.push(TinValue::Vector(res));
+        },
+
+        (TinValue::IntVector(a), TinValue::FloatVector(b)) => {
+            let mut res = vec!();
+            res.reserve(a.len() * b.len());
+
+            for i in a.iter() {
+                for j in b.iter() {
+                    res.push(TinValue::Vector(vec!(TinValue::Int(i.clone()), TinValue::Float(j.clone()))));
+                }   
+            }
+
+            stack.push(TinValue::Vector(res));
+        },
+
+        (TinValue::IntVector(a), TinValue::Vector(b)) => {
+            let mut res = vec!();
+            res.reserve(a.len() * b.len());
+
+            for i in a.iter() {
+                for j in b.iter() {
+                    res.push(TinValue::Vector(vec!(TinValue::Int(i.clone()), j.clone())));
+                }   
+            }
+
+            stack.push(TinValue::Vector(res));
+        },
+
+        (TinValue::FloatVector(a), TinValue::FloatVector(b)) => {
+            let mut res = vec!();
+            res.reserve(a.len() * b.len());
+
+            for i in a.iter() {
+                for j in b.iter() {
+                    res.push(TinValue::FloatVector(vec!(i.clone(), j.clone())));
+                }   
+            }
+
+            stack.push(TinValue::Vector(res));
+        },
+
+        (TinValue::FloatVector(a), TinValue::IntVector(b)) => {
+            let mut res = vec!();
+            res.reserve(a.len() * b.len());
+
+            for i in a.iter() {
+                for j in b.iter() {
+                    res.push(TinValue::Vector(vec!(TinValue::Float(i.clone()), TinValue::Int(j.clone()))));
+                }   
+            }
+
+            stack.push(TinValue::Vector(res));
+        },
+
+        (TinValue::FloatVector(a), TinValue::Vector(b)) => {
+            let mut res = vec!();
+            res.reserve(a.len() * b.len());
+
+            for i in a.iter() {
+                for j in b.iter() {
+                    res.push(TinValue::Vector(vec!(TinValue::Float(i.clone()), j.clone())));
+                }   
+            }
+
+            stack.push(TinValue::Vector(res));
+        },
+
         _ => return Err("Popped elements were not two vectors".into())
     };
     
@@ -901,7 +1220,39 @@ fn tin_zip(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
 
     match (&mut v1, &mut v2) {
         (TinValue::Vector(a), TinValue::Vector(b)) => {
-            stack.push(TinValue::Vector(a.iter().zip(b.iter()).map(|(i, j)| TinValue::Vector(vec!(i.clone(), j.clone()))).collect()));
+            stack.push(TinValue::Vector(b.iter().zip(a.iter()).map(|(i, j)| TinValue::Vector(vec!(i.clone(), j.clone()))).collect()));
+        },
+
+        (TinValue::IntVector(a), TinValue::Vector(b)) => {
+            stack.push(TinValue::Vector(b.iter().zip(a.iter().copied().map(TinValue::Int)).map(|(i, j)| TinValue::Vector(vec!(i.clone(), j.clone()))).collect()));
+        },
+
+        (TinValue::FloatVector(a), TinValue::Vector(b)) => {
+            stack.push(TinValue::Vector(b.iter().zip(a.iter().copied().map(TinValue::Float)).map(|(i, j)| TinValue::Vector(vec!(i.clone(), j.clone()))).collect()));
+        },
+
+        (TinValue::Vector(a), TinValue::IntVector(b)) => {
+            stack.push(TinValue::Vector(b.iter().copied().map(TinValue::Int).zip(a.iter()).map(|(i, j)| TinValue::Vector(vec!(i.clone(), j.clone()))).collect()));
+        },
+
+        (TinValue::IntVector(a), TinValue::IntVector(b)) => {
+            stack.push(TinValue::Vector(b.iter().zip(a.iter()).map(|(i, j)| TinValue::IntVector(vec!(*i, *j))).collect()));
+        },
+
+        (TinValue::FloatVector(a), TinValue::IntVector(b)) => {
+            stack.push(TinValue::Vector(b.iter().copied().map(TinValue::Int).zip(a.iter().copied().map(TinValue::Float)).map(|(i, j)| TinValue::Vector(vec!(i.clone(), j.clone()))).collect()));
+        },
+        
+        (TinValue::Vector(a), TinValue::FloatVector(b)) => {
+            stack.push(TinValue::Vector(b.iter().copied().map(TinValue::Float).zip(a.iter()).map(|(i, j)| TinValue::Vector(vec!(i.clone(), j.clone()))).collect()));
+        },
+        
+        (TinValue::IntVector(a), TinValue::FloatVector(b)) => {
+            stack.push(TinValue::Vector(b.iter().copied().map(TinValue::Float).zip(a.iter().copied().map(TinValue::Int)).map(|(i, j)| TinValue::Vector(vec!(i.clone(), j.clone()))).collect()));
+        },
+        
+        (TinValue::FloatVector(a), TinValue::FloatVector(b)) => {
+            stack.push(TinValue::Vector(b.iter().zip(a.iter()).map(|(i, j)| TinValue::FloatVector(vec!(*i, *j))).collect()));
         },
 
         _ => return Err("Popped elements were not two vectors".into())
@@ -913,6 +1264,8 @@ fn tin_zip(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
 fn flatten_value(val: TinValue) -> Vec<TinValue> {
     return match val {
         TinValue::Vector(v) => v.into_iter().flat_map(flatten_value).collect(),
+        TinValue::IntVector(v) => v.into_iter().map(TinValue::Int).collect(),
+        TinValue::FloatVector(v) => v.into_iter().map(TinValue::Float).collect(),
         _ => vec!(val)
     };
 }
@@ -921,6 +1274,14 @@ fn tin_flatten(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>,
     match safe_pop(stack)? {
         TinValue::Vector(v) => {
             stack.push(TinValue::Vector(v.into_iter().flat_map(flatten_value).collect()));
+        },
+
+        TinValue::IntVector(v) => {
+            stack.push(TinValue::IntVector(v));
+        },
+
+        TinValue::FloatVector(v) => {
+            stack.push(TinValue::FloatVector(v));
         },
 
         _ => return Err("Popped element was not a vector".into())
@@ -932,6 +1293,8 @@ fn tin_flatten(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>,
 fn tin_reverse(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {    
     match safe_peek(stack)? {
         TinValue::Vector(v) => v.reverse(),
+        TinValue::IntVector(v) => v.reverse(),
+        TinValue::FloatVector(v) => v.reverse(),
 
         _ => return Err("Popped element was not a vector".into())
     };
@@ -939,11 +1302,70 @@ fn tin_reverse(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>,
     return Ok(());
 }
 
+fn tin_window(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    let size = safe_pop(stack)?;
+    let mut v = safe_pop(stack)?;
+
+    match (size, &mut v) {
+        (TinValue::Int(a), TinValue::Vector(v)) => {
+            if a <= 0 {
+                return Err(format!("Got window size of {} (expected at least 1)", a));
+            }
+
+            let inner = v.windows(a as usize).map(|i| TinValue::Vector(i.iter().cloned().collect())).collect();
+            stack.push(TinValue::Vector(inner));
+        },
+
+        (TinValue::Int(a), TinValue::IntVector(v)) => {
+            if a <= 0 {
+                return Err(format!("Got window size of {} (expected at least 1)", a));
+            }
+
+            let inner = v.windows(a as usize).map(|i| TinValue::IntVector(i.iter().copied().collect())).collect();
+            stack.push(TinValue::Vector(inner));
+        },
+
+        (TinValue::Int(a), TinValue::FloatVector(v)) => {
+            if a <= 0 {
+                return Err(format!("Got window size of {} (expected at least 1)", a));
+            }
+
+            let inner = v.windows(a as usize).map(|i| TinValue::FloatVector(i.iter().copied().collect())).collect();
+            stack.push(TinValue::Vector(inner));
+        },
+
+        _ => return Err("Popped elements were not an int and a vector".into())
+    };
+    
+    return Ok(());
+}
+
 fn tin_append(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {    
     let elem = safe_pop(stack)?;
+    let v = safe_peek(stack)?;
 
-    match safe_peek(stack)? {
+    match v {
         TinValue::Vector(v) => v.push(elem),
+        TinValue::IntVector(v_inner) => {
+            match elem {
+                TinValue::Int(n) => v_inner.push(n),
+                _ => {
+                    let mut new_inner = v_inner.iter().copied().map(TinValue::Int).collect::<Vec<_>>();
+                    new_inner.push(elem);
+                    *v = TinValue::Vector(new_inner);
+                }
+            }
+        },
+        TinValue::FloatVector(v_inner) => {
+            match elem {
+                TinValue::Float(n) => v_inner.push(n),
+                _ => {
+                    let mut new_inner = v_inner.iter().copied().map(TinValue::Float).collect::<Vec<_>>();
+                    new_inner.push(elem);
+                    *v = TinValue::Vector(new_inner);
+                }
+            }
+        },
 
         _ => return Err("Popped element was not a vector".into())
     };
@@ -954,6 +1376,18 @@ fn tin_append(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, 
 fn drop_first(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     match safe_peek(stack)? {
         TinValue::Vector(v) => {
+            if v.len() > 0 {
+                v.remove(0);
+            }
+        },
+
+        TinValue::IntVector(v) => {
+            if v.len() > 0 {
+                v.remove(0);
+            }
+        },
+
+        TinValue::FloatVector(v) => {
             if v.len() > 0 {
                 v.remove(0);
             }
@@ -973,6 +1407,19 @@ fn drop_last(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _
             }
         },
 
+        TinValue::IntVector(v) => {
+            if v.len() > 0 {
+                v.pop();
+            }
+        },
+
+        TinValue::FloatVector(v) => {
+            if v.len() > 0 {
+                v.pop();
+            }
+        },
+        
+
         _ => return Err("Popped element was not a vector".into())
     };
     
@@ -985,6 +1432,41 @@ fn tin_print(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _p
 
     } else {
         println!("{}", safe_pop(stack)?.to_string());
+    }
+    
+    return Ok(());
+}
+
+fn tin_println(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    if cfg!(target_arch = "wasm32") {
+        intrp.output += &safe_pop(stack)?.to_string();
+        intrp.output += "\n";
+
+    } else {
+        println!("{}\n", safe_pop(stack)?.to_string());
+    }
+    
+    return Ok(());
+}
+
+fn tin_print_str(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    if cfg!(target_arch = "wasm32") {
+        intrp.output += &safe_pop(stack)?.to_mapped_string()?;
+
+    } else {
+        println!("{}", safe_pop(stack)?.to_mapped_string()?);
+    }
+    
+    return Ok(());
+}
+
+fn tin_println_str(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    if cfg!(target_arch = "wasm32") {
+        intrp.output += &safe_pop(stack)?.to_mapped_string()?;
+        intrp.output += "\n";
+
+    } else {
+        println!("{}\n", safe_pop(stack)?.to_mapped_string()?);
     }
     
     return Ok(());
@@ -1029,6 +1511,8 @@ pub fn std_tin_functions() -> Vec<(TinTokenDetector, fn(&str) -> TinToken)> {
         // Literals
         (from_re(r"\d*\.\d+"), |s| TinToken::Float(s.parse::<f64>().unwrap())),
         (from_re(r"\d+"), |s| TinToken::Int(s.parse::<i64>().unwrap())),
+        (from_re("\'[^\']\'"), |s| TinToken::Int(s.chars().nth(1).unwrap() as i64)),
+        (from_re("\"[^\"]*\""), |s| TinToken::String(s[1..s.len() - 1].to_string())),
 
         // Meta
         (from_re(r"¡"), |s| TinToken::Fn(s.to_string(), tin_drop)),
@@ -1129,13 +1613,17 @@ pub fn std_tin_functions() -> Vec<(TinTokenDetector, fn(&str) -> TinToken)> {
         (from_re(r"⨝"), |s| TinToken::Fn(s.to_string(), tin_zip)),
         (from_re(r"⊔"), |s| TinToken::Fn(s.to_string(), tin_flatten)),
         (from_re(r"⤾"), |s| TinToken::Fn(s.to_string(), tin_reverse)),
+        (from_re(r"⊞"), |s| TinToken::Fn(s.to_string(), tin_window)),
 
         // Functional array manipulation
         (from_re(r"`"), |s| TinToken::Fn(s.to_string(), drop_first)),
         (from_re(r"´"), |s| TinToken::Fn(s.to_string(), drop_last)),
 
         // IO
-        (from_re(r"\$"), |s| TinToken::Fn(s.to_string(), tin_print))
+        (from_re(r"\$"), |s| TinToken::Fn(s.to_string(), tin_print)),
+        (from_re(r"\*\$"), |s| TinToken::Fn(s.to_string(), tin_print_str)),
+        (from_re(r"\.\$"), |s| TinToken::Fn(s.to_string(), tin_println)),
+        (from_re(r"\*\.\$"), |s| TinToken::Fn(s.to_string(), tin_println_str))
     );
 
     return res;
