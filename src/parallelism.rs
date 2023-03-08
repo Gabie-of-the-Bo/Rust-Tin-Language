@@ -13,6 +13,10 @@ lazy_static!{
     pub static ref CORES: usize = num_cpus::get_physical();
 }
 
+pub fn parallelizable_platform() -> bool {
+    return !cfg!(target_arch = "wasm32");
+}
+
 pub fn get_parallelization() -> bool{
     return PARALLEL.with(|i| i.get());
 }
@@ -22,7 +26,8 @@ pub fn set_parallelization(value: bool) {
 }
 
 pub fn parallelizable(limit: usize) -> bool{
-    return get_parallelization() && 
+    return parallelizable_platform() && 
+           get_parallelization() && 
            (if cfg!(feature = "no-core-check") { true } else { *CORES > 2 }) && 
            limit >= 10000; // Experimental limit
 }

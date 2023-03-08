@@ -22,6 +22,20 @@ macro_rules! unary_vectorized_op {
     };
 }
 
+macro_rules! vector_op {
+    ($vec: ident, $variant: ident, $arg: ident, $op: expr) => {
+        if parallelizable($vec.len()) {TinValue::$variant($vec.par_iter().map(|$arg| $op).collect::<Vec<_>>())}
+                                 else {TinValue::$variant($vec.iter().map(|$arg| $op).collect::<Vec<_>>())}
+    };
+}
+
+macro_rules! co_vector_op {
+    ($vec1: ident, $vec2: ident, $variant: ident, $arg1: ident, $arg2: ident, $op: expr) => {
+        if parallelizable($vec1.len()) {TinValue::$variant($vec1.par_iter().zip($vec2).map(|($arg1, $arg2)| $op).collect::<Vec<_>>())}
+                                  else {TinValue::$variant($vec1.iter().zip($vec2).map(|($arg1, $arg2)| $op).collect::<Vec<_>>())}
+    };
+}
+
 macro_rules! binary_vectorized_op {
     ($name: ident, $a: ident, $b: ident, $variant_int: ident, $op_int: expr, $variant_mix_1: ident, $op_mix_1: expr, $variant_mix_2: ident, $op_mix_2: expr, $variant_float: ident, $op_float: expr, $variant_int_v: ident, $variant_float_v: ident, $variant_mix_v: ident) => {
         pub fn $name(aa: &TinValue, bb: &TinValue) -> TinValue{
@@ -32,71 +46,33 @@ macro_rules! binary_vectorized_op {
                 (TinValue::Float($a), TinValue::Float($b)) => TinValue::$variant_float($op_float),
         
                 // Vector
-                (TinValue::Int(_), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| $name(aa, v)).collect::<Vec<_>>())}
-                                                                                 else {TinValue::Vector(b.iter().map(|v| $name(aa, v)).collect::<Vec<_>>())},
-        
-                (TinValue::Vector(b), TinValue::Int(_)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| $name(v, bb)).collect::<Vec<_>>())}
-                                                                                 else {TinValue::Vector(b.iter().map(|v| $name(v, bb)).collect::<Vec<_>>())},
-        
-                (TinValue::Float(_), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| $name(aa, v)).collect::<Vec<_>>())}
-                                                                                   else {TinValue::Vector(b.iter().map(|v| $name(aa, v)).collect::<Vec<_>>())},
-        
-                (TinValue::Vector(b), TinValue::Float(_)) => if parallelizable(b.len()) {TinValue::Vector(b.par_iter().map(|v| $name(v, bb)).collect::<Vec<_>>())}
-                                                                                   else {TinValue::Vector(b.iter().map(|v| $name(v, bb)).collect::<Vec<_>>())},
-        
-                (TinValue::Vector(a), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(a.par_iter().zip(b).map(|t| $name(t.0, t.1)).collect::<Vec<_>>())}
-                                                                                    else {TinValue::Vector(a.iter().zip(b).map(|t| $name(t.0, t.1)).collect::<Vec<_>>())},
+                (TinValue::Int(_), TinValue::Vector(b)) => vector_op!(b, Vector, v, $name(aa, v)),
+                (TinValue::Vector(b), TinValue::Int(_)) => vector_op!(b, Vector, v, $name(v, bb)),
+                (TinValue::Float(_), TinValue::Vector(b)) => vector_op!(b, Vector, v, $name(aa, v)),
+                (TinValue::Vector(b), TinValue::Float(_)) => vector_op!(b, Vector, v, $name(v, bb)),
+                (TinValue::Vector(a), TinValue::Vector(b)) => co_vector_op!(a, b, Vector, $a, $b, $name($a, $b)),
 
                 // Int vector
-                (TinValue::Int($a), TinValue::IntVector(v)) => if parallelizable(v.len()) {TinValue::$variant_int_v(v.par_iter().map(|$b| $op_int).collect::<Vec<_>>())}
-                                                                                     else {TinValue::$variant_int_v(v.iter().map(|$b| $op_int).collect::<Vec<_>>())},
-
-                (TinValue::IntVector(v), TinValue::Int($b)) => if parallelizable(v.len()) {TinValue::$variant_int_v(v.par_iter().map(|$a| $op_int).collect::<Vec<_>>())}
-                                                                                else {TinValue::$variant_int_v(v.iter().map(|$a| $op_int).collect::<Vec<_>>())},
-
-                (TinValue::Float($a), TinValue::IntVector(v)) => if parallelizable(v.len()) {TinValue::$variant_mix_v(v.par_iter().map(|$b| $op_mix_2).collect::<Vec<_>>())}
-                                                                                    else {TinValue::$variant_mix_v(v.iter().map(|$b| $op_mix_2).collect::<Vec<_>>())},
-
-                (TinValue::IntVector(v), TinValue::Float($b)) => if parallelizable(v.len()) {TinValue::$variant_mix_v(v.par_iter().map(|$a| $op_mix_1).collect::<Vec<_>>())}
-                                                                                    else {TinValue::$variant_mix_v(v.iter().map(|$a| $op_mix_1).collect::<Vec<_>>())},
-
-                (TinValue::IntVector(a), TinValue::IntVector(b)) => if parallelizable(b.len()) {TinValue::$variant_int_v(a.par_iter().zip(b).map(|($a, $b)| $op_int).collect::<Vec<_>>())}
-                                                                                    else {TinValue::$variant_int_v(a.iter().zip(b).map(|($a, $b)| $op_int).collect::<Vec<_>>())},
+                (TinValue::Int($a), TinValue::IntVector(v)) => vector_op!(v, $variant_int_v, $b, $op_int),
+                (TinValue::IntVector(v), TinValue::Int($b)) => vector_op!(v, $variant_int_v, $a, $op_int),
+                (TinValue::Float($a), TinValue::IntVector(v)) => vector_op!(v, $variant_mix_v, $b, $op_mix_2),
+                (TinValue::IntVector(v), TinValue::Float($b)) => vector_op!(v, $variant_mix_v, $a, $op_mix_1),
+                (TinValue::IntVector(a), TinValue::IntVector(b)) => co_vector_op!(a, b, $variant_int_v, $a, $b, $op_int),
 
                 // Float vector
-                (TinValue::Int($a), TinValue::FloatVector(v)) => if parallelizable(v.len()) {TinValue::$variant_float_v(v.par_iter().map(|$b| $op_mix_1).collect::<Vec<_>>())}
-                                                                                        else {TinValue::$variant_float_v(v.iter().map(|$b| $op_mix_1).collect::<Vec<_>>())},
-
-                (TinValue::FloatVector(v), TinValue::Int($b)) => if parallelizable(v.len()) {TinValue::$variant_float_v(v.par_iter().map(|$a| $op_mix_2).collect::<Vec<_>>())}
-                                                                                else {TinValue::$variant_float_v(v.iter().map(|$a| $op_mix_2).collect::<Vec<_>>())},
-
-                (TinValue::Float($a), TinValue::FloatVector(v)) => if parallelizable(v.len()) {TinValue::$variant_mix_v(v.par_iter().map(|$b| $op_float).collect::<Vec<_>>())}
-                                                                                    else {TinValue::$variant_mix_v(v.iter().map(|$b| $op_float).collect::<Vec<_>>())},
-
-                (TinValue::FloatVector(v), TinValue::Float($b)) => if parallelizable(v.len()) {TinValue::$variant_mix_v(v.par_iter().map(|$a| $op_float).collect::<Vec<_>>())}
-                                                                                    else {TinValue::$variant_mix_v(v.iter().map(|$a| $op_float).collect::<Vec<_>>())},
-
-                (TinValue::FloatVector(a), TinValue::FloatVector(b)) => if parallelizable(b.len()) {TinValue::$variant_float_v(a.par_iter().zip(b).map(|($a, $b)| $op_float).collect::<Vec<_>>())}
-                                                                                    else {TinValue::$variant_float_v(a.iter().zip(b).map(|($a, $b)| $op_float).collect::<Vec<_>>())},
+                (TinValue::Int($a), TinValue::FloatVector(v)) => vector_op!(v, $variant_float_v, $b, $op_mix_1),
+                (TinValue::FloatVector(v), TinValue::Int($b)) => vector_op!(v, $variant_float_v, $a, $op_mix_2),
+                (TinValue::Float($a), TinValue::FloatVector(v)) => vector_op!(v, $variant_mix_v, $b, $op_float),
+                (TinValue::FloatVector(v), TinValue::Float($b)) => vector_op!(v, $variant_mix_v, $a, $op_float),
+                (TinValue::FloatVector(a), TinValue::FloatVector(b)) => co_vector_op!(a, b, $variant_float_v, $a, $b, $op_float),
 
                 // Vectors
-                (TinValue::FloatVector(a), TinValue::IntVector(b)) => if parallelizable(b.len()) {TinValue::$variant_mix_v(a.par_iter().zip(b).map(|($a, $b)| $op_mix_2).collect::<Vec<_>>())}
-                                                                                    else {TinValue::$variant_mix_v(a.iter().zip(b).map(|($a, $b)| $op_mix_2).collect::<Vec<_>>())},
-
-                (TinValue::IntVector(a), TinValue::FloatVector(b)) => if parallelizable(b.len()) {TinValue::$variant_mix_v(a.par_iter().zip(b).map(|($a, $b)| $op_mix_1).collect::<Vec<_>>())}
-                                                                                    else {TinValue::$variant_mix_v(a.iter().zip(b).map(|($a, $b)| $op_mix_1).collect::<Vec<_>>())},
-
-                (TinValue::Vector(a), TinValue::FloatVector(b)) => if parallelizable(b.len()) {TinValue::Vector(a.par_iter().zip(b).map(|(a, b)| $name(a, &TinValue::Float(*b))).collect::<Vec<_>>())}
-                                                                                    else {TinValue::Vector(a.iter().zip(b).map(|(a, b)| $name(a, &TinValue::Float(*b))).collect::<Vec<_>>())},
-
-                (TinValue::FloatVector(a), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(a.par_iter().zip(b).map(|(a, b)| $name(&TinValue::Float(*a), b)).collect::<Vec<_>>())}
-                                                                                    else {TinValue::Vector(a.iter().zip(b).map(|(a, b)| $name(&TinValue::Float(*a), b)).collect::<Vec<_>>())},
-
-                (TinValue::Vector(a), TinValue::IntVector(b)) => if parallelizable(b.len()) {TinValue::Vector(a.par_iter().zip(b).map(|(a, b)| $name(a, &TinValue::Int(*b))).collect::<Vec<_>>())}
-                                                                                    else {TinValue::Vector(a.iter().zip(b).map(|(a, b)| $name(a, &TinValue::Int(*b))).collect::<Vec<_>>())},
-
-                (TinValue::IntVector(a), TinValue::Vector(b)) => if parallelizable(b.len()) {TinValue::Vector(a.par_iter().zip(b).map(|(a, b)| $name(&TinValue::Int(*a), b)).collect::<Vec<_>>())}
-                                                                                    else {TinValue::Vector(a.iter().zip(b).map(|(a, b)| $name(&TinValue::Int(*a), b)).collect::<Vec<_>>())},
+                (TinValue::FloatVector(a), TinValue::IntVector(b)) => co_vector_op!(a, b, $variant_mix_v, $a, $b, $op_mix_2),
+                (TinValue::IntVector(a), TinValue::FloatVector(b)) => co_vector_op!(a, b, $variant_mix_v, $a, $b, $op_mix_1),
+                (TinValue::Vector(a), TinValue::FloatVector(b)) => co_vector_op!(a, b, Vector, $a, $b, $name($a, &TinValue::Float(*$b))),
+                (TinValue::FloatVector(a), TinValue::Vector(b)) => co_vector_op!(a, b, Vector, $a, $b, $name(&TinValue::Float(*$a), $b)),
+                (TinValue::Vector(a), TinValue::IntVector(b)) => co_vector_op!(a, b, Vector, $a, $b, $name($a, &TinValue::Int(*$b))),
+                (TinValue::IntVector(a), TinValue::Vector(b)) => co_vector_op!(a, b, Vector, $a, $b, $name(&TinValue::Int(*$a), $b)),
             };
         }
         
@@ -115,6 +91,8 @@ unary_vectorized_op!(sqrt, n, Float, (*n as f64).sqrt(), Float, n.sqrt(), n, Flo
 binary_vectorized_op!(or, a, b, Int, (*a != 0 || *b != 0) as i64, Int, (*a != 0 || *b != 0.0) as i64, Int, (*a != 0.0 || *b != 0) as i64, Int, (*a != 0.0 || *b != 0.0) as i64, IntVector, IntVector, IntVector);
 binary_vectorized_op!(and, a, b, Int, (*a != 0 && *b != 0) as i64, Int, (*a != 0 && *b != 0.0) as i64, Int, (*a != 0.0 && *b != 0) as i64, Int, (*a != 0.0 && *b != 0.0) as i64, IntVector, IntVector, IntVector);
 
+binary_vectorized_op!(eq, a, b, Int, (*a == *b) as i64, Int, ((*a as f64) == *b) as i64, Int, (*a == *b as f64) as i64, Int, (*a == *b) as i64, IntVector, IntVector, IntVector);
+binary_vectorized_op!(neq, a, b, Int, (*a != *b) as i64, Int, ((*a as f64) != *b) as i64, Int, (*a != *b as f64) as i64, Int, (*a != *b) as i64, IntVector, IntVector, IntVector);
 binary_vectorized_op!(lt, a, b, Int, (*a < *b) as i64, Int, ((*a as f64) < *b) as i64, Int, (*a < *b as f64) as i64, Int, (*a < *b) as i64, IntVector, IntVector, IntVector);
 binary_vectorized_op!(leq, a, b, Int, (*a <= *b) as i64, Int, ((*a as f64) <= *b) as i64, Int, (*a <= *b as f64) as i64, Int, (*a <= *b) as i64, IntVector, IntVector, IntVector);
 binary_vectorized_op!(gt, a, b, Int, (*a > *b) as i64, Int, ((*a as f64) > *b) as i64, Int, (*a > *b as f64) as i64, Int, (*a > *b) as i64, IntVector, IntVector, IntVector);

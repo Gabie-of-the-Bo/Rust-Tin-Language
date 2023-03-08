@@ -2,7 +2,7 @@ use rand::Rng;
 use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet, HashSet, HashMap};
 
-use crate::{wrappers, simd};
+use crate::{wrappers};
 use crate::interpreter::{*};
 use crate::parallelism;
 
@@ -34,15 +34,47 @@ fn tin_dup(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
 }
 
 fn tin_swap(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    if stack.len() < 2 {
+        return Err("Unable to swap elements in a stack with less than two values".into());
+    }
+
     let last_index = stack.len() - 1;
     stack.swap(last_index, last_index - 1);
+
+    return Ok(());
+}
+
+fn tin_prev_swap(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    if stack.len() < 3 {
+        return Err("Unable to swap elements in a stack with less than three values".into());
+    }
+
+    let last_index = stack.len() - 2;
+    stack.swap(last_index, last_index - 1);
+
+    return Ok(());
+}
+
+fn tin_gen_swap(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    let idx = match safe_pop(stack)? {
+        TinValue::Int(n) if n > 0 => n as usize,
+        TinValue::Int(n) => return Err(format!("Index {n} invalid for swap operation")),
+        _ => return Err("Popped element was not an int".into())
+    };
     
+    if stack.len() < idx + 1 {
+        return Err(format!("Unable to swap elements in a stack with less than {} values", idx + 1));
+    }
+
+    let last_index = stack.len() - 1;
+    stack.swap(last_index, last_index - idx);
+
     return Ok(());
 }
 
 fn tin_copy(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     if let TinValue::Int(n) = safe_pop(stack)? {
-        let item = stack.get(stack.len() - 1 - n as usize).cloned().ok_or(format!("Unable to pop {}th element from stack of size {}", n, stack.len()))?;
+        let item = stack.get(stack.len() - 1 - n as usize).cloned().ok_or_else(|| format!("Unable to pop {}th element from stack of size {}", n, stack.len()))?;
         stack.push(item);
     
     } else {
@@ -99,7 +131,7 @@ fn tin_delete_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>
 
 fn tin_get_var(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     let ctx = &intrp.variables[&tok];
-    stack.push(ctx.last().cloned().ok_or(format!("Variable \'{}\' is not defined", tok))?);
+    stack.push(ctx.last().cloned().ok_or_else(|| format!("Variable \'{}\' is not defined", tok))?);
     
     return Ok(());
 }
@@ -217,6 +249,22 @@ fn tin_map_end(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, 
     return Ok(());
 }
 
+fn tin_while_init(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, ip: &mut i64, _stack: &mut Vec<TinValue>) -> Result<(), String> {
+    if intrp.while_stack.is_empty() || intrp.while_stack.last().unwrap() != ip {
+        intrp.while_stack.push(*ip);
+    }
+    
+    return Ok(());
+}
+
+fn tin_while_end(_tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    if safe_pop(stack)?.truthy() {
+        *ip = intrp.while_stack.last().unwrap() - 1;
+    }
+    
+    return Ok(());
+}
+
 fn nabla(_tok: String, intrp: &mut TinInterpreter, prog: &Vec<TinToken>, prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     if prog_parent.is_some(){
         intrp.execute(prog_parent.unwrap(), Option::None, stack)?;
@@ -244,11 +292,38 @@ fn rec_block(tok: String, intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _pr
     return Ok(());
 }
 
-fn tin_eq(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+fn tin_equiv(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     let a = safe_pop(stack)?;
     let b = safe_peek(stack)?;
 
     *stack.last_mut().unwrap() = TinValue::Int((a == *b) as i64);
+    
+    return Ok(());
+}
+
+fn tin_nequiv(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    let a = safe_pop(stack)?;
+    let b = safe_peek(stack)?;
+
+    *stack.last_mut().unwrap() = TinValue::Int((a != *b) as i64);
+    
+    return Ok(());
+}
+
+fn tin_eq(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    let a = safe_pop(stack)?;
+    let b = safe_peek(stack)?;
+
+    *stack.last_mut().unwrap() = wrappers::eq(&a, &b);
+    
+    return Ok(());
+}
+
+fn tin_neq(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
+    let a = safe_pop(stack)?;
+    let b = safe_peek(stack)?;
+
+    *stack.last_mut().unwrap() = wrappers::neq(&a, &b);
     
     return Ok(());
 }
@@ -583,8 +658,8 @@ fn tin_sum_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>,
             }
         },
 
-        TinValue::IntVector(v) => stack.push(TinValue::Int(simd::sum_i64(&v))),
-        TinValue::FloatVector(v) => stack.push(TinValue::Float(simd::sum_f64(&v))),
+        TinValue::IntVector(v) => stack.push(TinValue::Int(v.into_iter().sum())),
+        TinValue::FloatVector(v) => stack.push(TinValue::Float(v.into_iter().sum())),
 
         _ => return Err("Popped element was not a vector".into())
     };
@@ -609,8 +684,8 @@ fn tin_mul_all(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>,
             }
         },
 
-        TinValue::IntVector(v) => stack.push(TinValue::Int(simd::product_i64(&v))),
-        TinValue::FloatVector(v) => stack.push(TinValue::Float(simd::product_f64(&v))),
+        TinValue::IntVector(v) => stack.push(TinValue::Int(v.into_iter().product())),
+        TinValue::FloatVector(v) => stack.push(TinValue::Float(v.into_iter().product())),
 
         _ => return Err("Popped element was not a vector".into())
     };
@@ -1090,123 +1165,28 @@ fn tin_cartesian(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken
     let mut v1 = safe_pop(stack)?;
     let mut v2 = safe_pop(stack)?;
 
+    macro_rules! cartesian_inner {
+        ($variant: ident, $a: expr, $b: expr, $i: ident, $j: ident, $op_1: expr, $op_2: expr) => {
+            stack.push(TinValue::Vector(
+                $a.into_iter()
+                    .flat_map(|$i| $b.iter().map(move |$j| TinValue::$variant(vec!($op_1, $op_2))))
+                    .collect::<Vec<_>>()
+            ))        
+        };
+    }
+
     match (&mut v1, &mut v2) {
-        (TinValue::Vector(a), TinValue::Vector(b)) => {
-            let mut res = vec!();
-            res.reserve(a.len() * b.len());
-
-            for i in a.iter() {
-                for j in b.iter() {
-                    res.push(TinValue::Vector(vec!(i.clone(), j.clone())));
-                }   
-            }
-
-            stack.push(TinValue::Vector(res));
-        },
-
-        (TinValue::Vector(a), TinValue::IntVector(b)) => {
-            let mut res = vec!();
-            res.reserve(a.len() * b.len());
-
-            for i in a.iter() {
-                for j in b.iter() {
-                    res.push(TinValue::Vector(vec!(i.clone(), TinValue::Int(*j))));
-                }   
-            }
-
-            stack.push(TinValue::Vector(res));
-        },
-
-        (TinValue::Vector(a), TinValue::FloatVector(b)) => {
-            let mut res = vec!();
-            res.reserve(a.len() * b.len());
-
-            for i in a.iter() {
-                for j in b.iter() {
-                    res.push(TinValue::Vector(vec!(i.clone(), TinValue::Float(*j))));
-                }   
-            }
-
-            stack.push(TinValue::Vector(res));
-        },
-
-        (TinValue::IntVector(a), TinValue::IntVector(b)) => {
-            let mut res = vec!();
-            res.reserve(a.len() * b.len());
-
-            for i in a.iter() {
-                for j in b.iter() {
-                    res.push(TinValue::IntVector(vec!(i.clone(), j.clone())));
-                }   
-            }
-
-            stack.push(TinValue::Vector(res));
-        },
-
-        (TinValue::IntVector(a), TinValue::FloatVector(b)) => {
-            let mut res = vec!();
-            res.reserve(a.len() * b.len());
-
-            for i in a.iter() {
-                for j in b.iter() {
-                    res.push(TinValue::Vector(vec!(TinValue::Int(i.clone()), TinValue::Float(j.clone()))));
-                }   
-            }
-
-            stack.push(TinValue::Vector(res));
-        },
-
-        (TinValue::IntVector(a), TinValue::Vector(b)) => {
-            let mut res = vec!();
-            res.reserve(a.len() * b.len());
-
-            for i in a.iter() {
-                for j in b.iter() {
-                    res.push(TinValue::Vector(vec!(TinValue::Int(i.clone()), j.clone())));
-                }   
-            }
-
-            stack.push(TinValue::Vector(res));
-        },
-
-        (TinValue::FloatVector(a), TinValue::FloatVector(b)) => {
-            let mut res = vec!();
-            res.reserve(a.len() * b.len());
-
-            for i in a.iter() {
-                for j in b.iter() {
-                    res.push(TinValue::FloatVector(vec!(i.clone(), j.clone())));
-                }   
-            }
-
-            stack.push(TinValue::Vector(res));
-        },
-
-        (TinValue::FloatVector(a), TinValue::IntVector(b)) => {
-            let mut res = vec!();
-            res.reserve(a.len() * b.len());
-
-            for i in a.iter() {
-                for j in b.iter() {
-                    res.push(TinValue::Vector(vec!(TinValue::Float(i.clone()), TinValue::Int(j.clone()))));
-                }   
-            }
-
-            stack.push(TinValue::Vector(res));
-        },
-
-        (TinValue::FloatVector(a), TinValue::Vector(b)) => {
-            let mut res = vec!();
-            res.reserve(a.len() * b.len());
-
-            for i in a.iter() {
-                for j in b.iter() {
-                    res.push(TinValue::Vector(vec!(TinValue::Float(i.clone()), j.clone())));
-                }   
-            }
-
-            stack.push(TinValue::Vector(res));
-        },
+        (TinValue::Vector(a), TinValue::Vector(b)) => cartesian_inner!(Vector, a, b, i, j, i.clone(), j.clone()),
+        (TinValue::Vector(a), TinValue::IntVector(b)) => cartesian_inner!(Vector, a, b, i, j, i.clone(), TinValue::Int(*j)),
+        (TinValue::Vector(a), TinValue::FloatVector(b)) => cartesian_inner!(Vector, a, b, i, j, i.clone(), TinValue::Float(*j)),
+        
+        (TinValue::IntVector(a), TinValue::Vector(b)) => cartesian_inner!(Vector, a, b, i, j, TinValue::Int(*i), j.clone()),
+        (TinValue::IntVector(a), TinValue::IntVector(b)) => cartesian_inner!(IntVector, a, b, i, j, *i, *j),
+        (TinValue::IntVector(a), TinValue::FloatVector(b)) => cartesian_inner!(Vector, a, b, i, j, TinValue::Int(*i), TinValue::Float(*j)),
+        
+        (TinValue::FloatVector(a), TinValue::Vector(b)) => cartesian_inner!(Vector, a, b, i, j, TinValue::Float(*i), j.clone()),
+        (TinValue::FloatVector(a), TinValue::IntVector(b)) => cartesian_inner!(Vector, a, b, i, j, TinValue::Float(*i), TinValue::Int(*j)),
+        (TinValue::FloatVector(a), TinValue::FloatVector(b)) => cartesian_inner!(FloatVector, a, b, i, j, *i, *j),
 
         _ => return Err("Popped elements were not two vectors".into())
     };
@@ -1518,6 +1498,8 @@ pub fn std_tin_functions() -> Vec<(TinTokenDetector, fn(&str) -> TinToken)> {
         (from_re(r"¡"), |s| TinToken::Fn(s.to_string(), tin_drop)),
         (from_re(r"!"), |s| TinToken::Fn(s.to_string(), tin_dup)),
         (from_re(r"↶"), |s| TinToken::Fn(s.to_string(), tin_swap)),
+        (from_re(r"\*↶"), |s| TinToken::Fn(s.to_string(), tin_prev_swap)),
+        (from_re(r"\.↶"), |s| TinToken::Fn(s.to_string(), tin_gen_swap)),
         (from_re(r"↷"), |s| TinToken::Fn(s.to_string(), tin_copy)),
         (from_re(r"⋮"), |s| TinToken::Fn(s.to_string(), tin_unpack)),
 
@@ -1539,6 +1521,8 @@ pub fn std_tin_functions() -> Vec<(TinTokenDetector, fn(&str) -> TinToken)> {
         (from_re(r"\)"), |s| TinToken::Fn(s.to_string(), tin_storer_end)),
         (from_re(r"\["), |s| TinToken::Fn(s.to_string(), tin_map_init)),
         (from_re(r"\]"), |s| TinToken::Fn(s.to_string(), tin_map_end)),
+        (from_re(r"⟬"), |s| TinToken::Fn(s.to_string(), tin_while_init)),
+        (from_re(r"⟭"), |s| TinToken::Fn(s.to_string(), tin_while_end)),
 
         (from_re(r"∇"), |s| TinToken::Fn(s.to_string(), nabla)),
 
@@ -1568,7 +1552,10 @@ pub fn std_tin_functions() -> Vec<(TinTokenDetector, fn(&str) -> TinToken)> {
         (from_re(r"∨"), |s| TinToken::Fn(s.to_string(), tin_or)),
         (from_re(r"∧"), |s| TinToken::Fn(s.to_string(), tin_and)),
 
+        (from_re(r"≡"), |s| TinToken::Fn(s.to_string(), tin_equiv)),
+        (from_re(r"≢"), |s| TinToken::Fn(s.to_string(), tin_nequiv)),
         (from_re(r"="), |s| TinToken::Fn(s.to_string(), tin_eq)),
+        (from_re(r"≠"), |s| TinToken::Fn(s.to_string(), tin_neq)),
         (from_re(r"<"), |s| TinToken::Fn(s.to_string(), tin_lt)),
         (from_re(r"≤"), |s| TinToken::Fn(s.to_string(), tin_leq)),
         (from_re(r">"), |s| TinToken::Fn(s.to_string(), tin_gt)),

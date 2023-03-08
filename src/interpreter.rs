@@ -6,7 +6,7 @@ use regex::Regex;
 
 use crate::stdfuncs::std_tin_functions;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum TinValue {
     Int(i64),
     Float(f64),
@@ -18,7 +18,7 @@ pub enum TinValue {
     FloatVector(Vec<f64>)
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum TinVector {
     Mixed(Vec<TinValue>),
     Int(Vec<i64>),
@@ -93,30 +93,155 @@ impl TinVector {
 unsafe impl Send for TinValue {}
 unsafe impl Sync for TinValue {}
 
+impl PartialEq for TinValue {
+    fn eq(&self, other: &Self) -> bool {
+        return match (self, other) {
+            (TinValue::Int(a), TinValue::Int(b)) => a == b,
+            (TinValue::Float(a), TinValue::Int(b)) => *a == *b as f64,
+            (TinValue::Int(a), TinValue::Float(b)) => *a as f64 == *b,
+            (TinValue::Float(a), TinValue::Float(b)) => a == b,
+
+            (TinValue::Vector(a), TinValue::Vector(b)) => a.len() == b.len() && a.iter().zip(b).all(|(i, j)| i == j),
+            (TinValue::Vector(a), TinValue::IntVector(b)) => a.len() == b.len() && a.iter().zip(b).all(|(i, j)| *i == TinValue::Int(*j)),
+            (TinValue::IntVector(a), TinValue::Vector(b)) => a.len() == b.len() && a.iter().zip(b).all(|(i, j)| TinValue::Int(*i) == *j),
+            (TinValue::Vector(a), TinValue::FloatVector(b)) => a.len() == b.len() && a.iter().zip(b).all(|(i, j)| *i == TinValue::Float(*j)),
+            (TinValue::FloatVector(a), TinValue::Vector(b)) => a.len() == b.len() && a.iter().zip(b).all(|(i, j)| TinValue::Float(*i) == *j),
+            (TinValue::FloatVector(a), TinValue::IntVector(b)) => a.len() == b.len() && a.iter().zip(b).all(|(i, j)| *i == *j as f64),
+            (TinValue::IntVector(a), TinValue::FloatVector(b)) => a.len() == b.len() && a.iter().zip(b).all(|(i, j)| *i as f64 == *j),
+            (TinValue::IntVector(a), TinValue::IntVector(b)) => a.len() == b.len() && a.iter().zip(b).all(|(i, j)| *i == *j),
+            (TinValue::FloatVector(a), TinValue::FloatVector(b)) => a.len() == b.len() && a.iter().zip(b).all(|(i, j)| *i == *j),
+
+            _ => false
+        }
+    }
+}
+
 impl Eq for TinValue {}
 
 impl std::cmp::PartialOrd for TinValue {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering>{
         
         return match (self, other) {
-            (TinValue::Vector(_), _) |
-            (_, TinValue::Vector(_)) | 
-            (TinValue::IntVector(_), _) |
-            (_, TinValue::IntVector(_)) | 
-            (TinValue::FloatVector(_), _) |
-            (_, TinValue::FloatVector(_)) => Option::None,
+            (TinValue::Int(a), TinValue::Int(b)) => Some(a.cmp(b)),
+            (TinValue::Float(a), TinValue::Int(b)) => a.partial_cmp(&(*b as f64)),
+            (TinValue::Int(a), TinValue::Float(b)) => (*a as f64).partial_cmp(b),
+            (TinValue::Float(a), TinValue::Float(b)) => a.partial_cmp(b),
 
-            _ => {
-                if crate::wrappers::lt(self, other) == TinValue::Int(1){
-                    Option::Some(Ordering::Less)
+            (TinValue::Vector(a), TinValue::Vector(b)) => {
+                let res = a.len().cmp(&b.len());
 
-                } else if self == other {
-                    Option::Some(Ordering::Equal)
-
-                } else {
-                    Option::Some(Ordering::Greater)
+                for c in a.iter().zip(b.iter()).map(|(i, j)| i.cmp(j)) {
+                    if c.is_ne() {
+                        return Some(c);
+                    }
                 }
-            }   
+
+                Some(res)
+            }
+
+            (TinValue::Vector(a), TinValue::IntVector(b)) => {
+                let res = a.len().cmp(&b.len());
+
+                for c in a.iter().zip(b.iter()).map(|(i, j)| i.cmp(&TinValue::Int(*j))) {
+                    if c.is_ne() {
+                        return Some(c);
+                    }
+                }
+
+                Some(res)
+            }
+
+            (TinValue::Vector(a), TinValue::FloatVector(b)) => {
+                let res = a.len().cmp(&b.len());
+
+                for c in a.iter().zip(b.iter()).map(|(i, j)| i.cmp(&TinValue::Float(*j))) {
+                    if c.is_ne() {
+                        return Some(c);
+                    }
+                }
+
+                Some(res)
+            }
+            
+            (TinValue::IntVector(a), TinValue::IntVector(b)) => {
+                let res = a.len().cmp(&b.len());
+
+                for c in a.iter().zip(b.iter()).map(|(i, j)| i.cmp(j)) {
+                    if c.is_ne() {
+                        return Some(c);
+                    }
+                }
+
+                Some(res)
+            }
+            
+            (TinValue::IntVector(a), TinValue::Vector(b)) => {
+                let res = a.len().cmp(&b.len());
+
+                for c in a.iter().zip(b.iter()).map(|(i, j)| TinValue::Int(*i).cmp(j)) {
+                    if c.is_ne() {
+                        return Some(c);
+                    }
+                }
+
+                Some(res)
+            }
+            
+            (TinValue::IntVector(a), TinValue::FloatVector(b)) => {
+                let res = a.len().cmp(&b.len());
+
+                for c in a.iter().zip(b.iter()).map(|(i, j)| TinValue::Int(*i).cmp(&TinValue::Float(*j))) {
+                    if c.is_ne() {
+                        return Some(c);
+                    }
+                }
+
+                Some(res)
+            }
+            
+            (TinValue::FloatVector(a), TinValue::FloatVector(b)) => {
+                let res = a.len().cmp(&b.len());
+
+                for c in a.iter().zip(b.iter()).map(|(i, j)| i.partial_cmp(j).unwrap()) {
+                    if c.is_ne() {
+                        return Some(c);
+                    }
+                }
+
+                Some(res)
+            }
+            
+            (TinValue::FloatVector(a), TinValue::IntVector(b)) => {
+                let res = a.len().cmp(&b.len());
+
+                for c in a.iter().zip(b.iter()).map(|(i, j)| TinValue::Float(*i).cmp(&TinValue::Int(*j))) {
+                    if c.is_ne() {
+                        return Some(c);
+                    }
+                }
+
+                Some(res)
+            }
+            
+            (TinValue::FloatVector(a), TinValue::Vector(b)) => {
+                let res = a.len().cmp(&b.len());
+
+                for c in a.iter().zip(b.iter()).map(|(i, j)| TinValue::Float(*i).cmp(j)) {
+                    if c.is_ne() {
+                        return Some(c);
+                    }
+                }
+
+                Some(res)
+            }
+
+            (TinValue::Vector(_), _) |
+            (TinValue::IntVector(_), _) |
+            (TinValue::FloatVector(_), _) => Some(Ordering::Greater),
+
+            (_, TinValue::Vector(_)) |
+            (_, TinValue::IntVector(_)) |
+            (_, TinValue::FloatVector(_)) => Some(Ordering::Less),
         }
     }
 }
@@ -181,6 +306,7 @@ pub struct TinInterpreter {
     pub loop_stack: Vec<(i64, TinVector, usize)>,
     pub storer_stack: Vec<usize>,
     pub map_stack: Vec<(i64, TinVector, usize, usize, TinVector)>,
+    pub while_stack: Vec<i64>,
     pub parse_cache: HashMap<String, Vec<TinToken>>,
     pub functions_cache: HashMap<String, Vec<TinToken>>,
 
@@ -196,6 +322,7 @@ impl TinInterpreter {
             loop_stack: vec!(),
             storer_stack: vec!(),
             map_stack: vec!(),
+            while_stack: vec!(),
             parse_cache: HashMap::new(),
             functions_cache: HashMap::new(),
             output: String::new(),

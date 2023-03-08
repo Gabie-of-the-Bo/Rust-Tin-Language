@@ -1,1 +1,1 @@
-wasm-pack build --target web --release --features=parallelism
+wasm-pack build --target web --release
