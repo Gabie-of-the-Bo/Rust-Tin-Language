@@ -576,13 +576,6 @@ fn iota(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_
     return Ok(());
 }
 
-fn boxed(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
-    let res = TinValue::Vector(vec!(safe_pop(stack)?));
-    stack.push(res);
-    
-    return Ok(());
-}
-
 fn set(_tok: String, _intrp: &mut TinInterpreter, _prog: &Vec<TinToken>, _prog_parent: Option<&Vec<TinToken>>, _ip: &mut i64, stack: &mut Vec<TinValue>) -> Result<(), String> {
     let idx = safe_pop(stack)?;
     let elem = safe_pop(stack)?;
@@ -1567,7 +1560,6 @@ pub fn std_tin_functions() -> Vec<(TinTokenDetector, fn(&str) -> TinToken)> {
 
         // Array operations
         (from_re(r"ι"), |s| TinToken::Fn(s.to_string(), iota)),
-        (from_re(r"□"), |s| TinToken::Fn(s.to_string(), boxed)),
         (from_re(r"↓"), |s| TinToken::Fn(s.to_string(), get)),
         (from_re(r"\*↓"), |s| TinToken::Fn(s.to_string(), get_nc)),
         (from_re(r"↑"), |s| TinToken::Fn(s.to_string(), set)),
